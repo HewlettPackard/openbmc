@@ -45,7 +45,7 @@ repository clone, and, if run without arguments, will display the list
 of supported hardware targets, see the following example:
 
 ```
-$ . setup
+$ . setup <machine> [build_dir]
 Target machine must be specified. Use one of:
 
 centriq2400-rep         nicole                     stardragon4800-rep2
@@ -63,7 +63,15 @@ neptune                 s2600wf
 Once you know the target (e.g. romulus), source the `setup` script as follows:
 
 ```
-. setup romulus
+. setup romulus build
+```
+
+For evb-ast2500, please use the below command to specify the machine config,
+because the machine in `meta-aspeed` layer is in a BSP layer and does not
+build the openbmc image.
+
+```
+TEMPLATECONF=meta-evb/meta-evb-aspeed/meta-evb-ast2500/conf . openbmc-env
 ```
 
 ### 4) Build
@@ -83,7 +91,7 @@ to get up to speed on OpenBMC development out
 
 ## Build Validation and Testing
 Commits submitted by members of the OpenBMC GitHub community are compiled and
-tested via our [Jenkins](https://openpower.xyz/) server.  Commits are run
+tested via our [Jenkins](https://jenkins.openbmc.org/) server. Commits are run
 through two levels of testing.  At the repository level the makefile `make
 check` directive is run.  At the system level, the commit is built into a
 firmware image and run with an arm-softmmu QEMU model against a barrage of

@@ -105,8 +105,11 @@ RDEPENDS_${PN}-sensors = " \
 ${PN}-software-extras = ""
 
 ${PN}-software-extras_df-obmc-ubi-fs = " \
-        phosphor-image-signing \
         phosphor-software-manager-updater-ubi \
+        "
+
+${PN}-software-extras_df-phosphor-mmc = " \
+        phosphor-software-manager-updater-mmc \
         "
 
 SUMMARY_${PN}-software = "Software applications"

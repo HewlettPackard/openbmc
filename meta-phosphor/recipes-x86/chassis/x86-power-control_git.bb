@@ -2,7 +2,7 @@ SUMMARY = "Chassis Power Control service for Intel based platforms"
 DESCRIPTION = "Chassis Power Control service for Intel based platforms"
 
 SRC_URI = "git://github.com/openbmc/x86-power-control.git;protocol=ssh"
-SRCREV = "95f631c2f0e2c39f2c395ba6fc48f92bab58be7b"
+SRCREV = "699b565d02ab0b590dda160bc0c8943e36d406bd"
 
 PV = "1.0+git${SRCPV}"
 
@@ -22,6 +22,7 @@ DEPENDS += " \
     boost \
     i2c-tools \
     libgpiod \
+    nlohmann-json \
     sdbusplus \
     phosphor-logging \
   "
