@@ -1,0 +1,11 @@
+{
+    "channels": [
+      {
+        "type": "me",
+        "master-path": "/dev/i2c-1",
+        "slave-path": "/sys/bus/i2c/devices/1-1010/slave-mqueue",
+        "bmc-addr": 32,
+        "remote-addr": 44
+      }
+    ]
+  }

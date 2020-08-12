@@ -1,0 +1,285 @@
+{
+    "sensors" : [
+        {
+            "name": "Fan1",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm0",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm0",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "Fan2",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm1",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm1",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "Fan3",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm2",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm2",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "Fan4",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm3",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm3",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "Fan5",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm4",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm4",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "Fan6",
+            "type": "fan",
+            "readPath": "/sys/class/hwmon/hwmon2/pwm5",
+            "writePath": "/sys/class/hwmon/hwmon2/pwm5",
+            "min": 0,
+            "max": 255
+        },
+        {
+            "name": "IO_Zone",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/IO_Zone",
+            "timeout": 0
+        },
+        {
+            "name": "Battery_Zone",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/Battery_Zone",
+            "timeout": 0
+        },
+        {
+            "name": "BMC_Zone",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/BMC_Zone",
+            "timeout": 0
+        },
+        {
+            "name": "PS_Zone",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/PS_Zone",
+            "timeout": 0
+        },
+        {
+            "name": "ambient2",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/ambient2",
+            "timeout": 0
+        },
+        {
+            "name": "CPU1_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/CPU1_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "CPU2_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/CPU2_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM1_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM1_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM2_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM2_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM3_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM3_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM4_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM4_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM5_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM5_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM6_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM6_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM7_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM7_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM8_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM8_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM9_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM9_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM10_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM10_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM11_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM11_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM12_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM12_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM13_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM13_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM14_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM14_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM15_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM15_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM16_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM16_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM17_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM17_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM18_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM18_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM19_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM19_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM20_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM20_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM21_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM21_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM22_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM22_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM23_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM23_Temp",
+            "timeout": 0
+        },
+        {
+            "name": "DIMM24_Temp",
+            "type": "temp",
+            "readPath": "/xyz/openbmc_project/sensors/temperature/DIMM24_Temp",
+            "timeout": 0
+        }
+    ],
+    "zones" : [
+        {
+            "id": 1,
+            "minThermalOutput": 0.0,
+            "failsafePercent": 90.0,
+            "pids": [
+                {
+                    "name": "Fan1-6",
+                    "type": "fan",
+                    "inputs": ["Fan1", "Fan2", "Fan3", "Fan4", "Fan5", "Fan6"],
+                    "setpoint": 128.0,
+                    "pid": {
+                        "samplePeriod": 0.1,
+                        "proportionalCoeff": 10.0,
+                        "integralCoeff": 2.0,
+                        "feedFwdOffsetCoeff": 0.0,
+                        "feedFwdGainCoeff": 0.0,
+                        "integralLimit_min": 0.0,
+                        "integralLimit_max": 0.0,
+                        "outLim_min": 35.0,
+                        "outLim_max": 90.0,
+                        "slewNeg": -5.0,
+                        "slewPos": 5.0
+                    }
+                },
+                {
+                    "name": "temppid0",
+                    "type": "temp",
+                    "inputs": ["IO_Zone","Battery_Zone","BMC_Zone","PS_Zone","ambient2","CPU1_Temp","CPU2_Temp","DIMM1_Temp","DIMM2_Temp","DIMM3_Temp","DIMM4_Temp","DIMM5_Temp","DIMM6_Temp","DIMM7_Temp","DIMM8_Temp","DIMM9_Temp","DIMM10_Temp","DIMM11_Temp","DIMM12_Temp","DIMM13_Temp","DIMM14_Temp","DIMM15_Temp","DIMM16_Temp","DIMM17_Temp","DIMM18_Temp","DIMM19_Temp","DIMM20_Temp","DIMM21_Temp","DIMM22_Temp","DIMM23_Temp","DIMM24_Temp"],
+                    "setpoint": 43,
+                    "pid": {
+                        "samplePeriod": 1,
+                        "proportionalCoeff": -60.0,
+                        "integralCoeff": -2.0,
+                        "feedFwdOffsetCoeff": 0.0,
+                        "feedFwdGainCoeff": 0.0,
+                        "integralLimit_min": 0,
+                        "integralLimit_max": 0,
+                        "outLim_min": 0,
+                        "outLim_max": 255,
+                        "slewNeg": -10.0,
+                        "slewPos": 10.0
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+From 9a7a41a9974e1c5d309f3d1a316602b008880b5d Mon Sep 17 00:00:00 2001
+From: Louis Hsu <kai-hsiang.hsu@hpe.com>
+Date: Fri, 10 Jan 2020 10:59:02 +0800
+Subject: [PATCH] Fix incorrect FRU offset length.
+
+1. FRU offset is 2 bytes.
+---
+ strgfnhandler.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/strgfnhandler.cpp b/strgfnhandler.cpp
+index 9ba2ad3..6d68682 100644
+--- a/strgfnhandler.cpp
++++ b/strgfnhandler.cpp
+@@ -25,7 +25,7 @@ ipmi_ret_t ipmiStorageWriteFruData(ipmi_netfn_t netfn, ipmi_cmd_t cmd,
+ {
+     FILE* fp = NULL;
+     char fruFilename[16] = {0};
+-    uint8_t offset = 0;
++    uint16_t offset = 0;
+     uint16_t len = 0;
+     ipmi_ret_t rc = IPMI_CC_INVALID;
+     const char* mode = NULL;

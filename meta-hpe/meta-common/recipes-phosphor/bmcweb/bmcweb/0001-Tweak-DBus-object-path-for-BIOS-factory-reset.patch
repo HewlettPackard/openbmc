@@ -1,0 +1,24 @@
+From 1029191d1560da27e69f59d3f54344247a4918d5 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 19:51:36 +0000
+Subject: [PATCH] Tweak DBus object path for BIOS factory reset
+
+---
+ redfish-core/lib/bios.hpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/redfish-core/lib/bios.hpp b/redfish-core/lib/bios.hpp
+index 0a0effa..19c55a6 100644
+--- a/redfish-core/lib/bios.hpp
++++ b/redfish-core/lib/bios.hpp
+@@ -69,8 +69,8 @@ class BiosReset : public Node
+                     return;
+                 }
+             },
+-            "org.open_power.Software.Host.Updater",
+-            "/xyz/openbmc_project/software",
++	    "xyz.openbmc_project.Software.BMC.Updater",
++            "/xyz/openbmc_project/software/gard",
+             "xyz.openbmc_project.Common.FactoryReset", "Reset");
+     }
+ };

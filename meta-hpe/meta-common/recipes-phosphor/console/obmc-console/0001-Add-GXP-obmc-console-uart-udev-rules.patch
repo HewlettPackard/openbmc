@@ -1,0 +1,17 @@
+From c6f7ae08d2a94b35d2c3fa9cdedeb3eb80d06d25 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Thu, 9 Apr 2020 05:15:25 +0800
+Subject: [PATCH] Add GXP obmc-console uart udev rules
+
+---
+ conf/80-obmc-console-uart.rules.in | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/conf/80-obmc-console-uart.rules.in b/conf/80-obmc-console-uart.rules.in
+index 1cb603a..e624d9a 100644
+--- a/conf/80-obmc-console-uart.rules.in
++++ b/conf/80-obmc-console-uart.rules.in
+@@ -1,2 +1 @@
+-SUBSYSTEM=="tty", ATTRS{iomem_base}=="0x1E787000", ENV{SYSTEMD_WANTS}="obmc-console@ttyVUART0" SYMLINK+="ttyVUART0", TAG+="systemd"
+-SUBSYSTEM=="tty", ATTRS{iomem_base}=="0x1E788000", ENV{SYSTEMD_WANTS}="obmc-console@ttyVUART1" SYMLINK+="ttyVUART1", TAG+="systemd"
++SUBSYSTEM=="tty", ATTRS{iomem_base}=="0x80FD0218", ENV{SYSTEMD_WANTS}="obmc-console@ttyVUART0" SYMLINK+="ttyVUART0", TAG+="systemd"

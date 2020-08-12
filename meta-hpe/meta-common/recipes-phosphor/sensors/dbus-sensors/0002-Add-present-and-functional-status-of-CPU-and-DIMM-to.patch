@@ -1,0 +1,381 @@
+From f8b0896eb7cd2e5d4da217850af58645fda76b7d Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Fri, 31 Jul 2020 15:08:33 +0000
+Subject: [PATCH] Add present and functional status of CPU and DIMM to 
+ inventory (Updated)
+
+---
+ include/IpmbSensor.hpp |  34 ++++++
+ src/IpmbSensor.cpp     | 230 +++++++++++++++++++++++++++++++++++------
+ 2 files changed, 233 insertions(+), 31 deletions(-)
+
+diff --git a/include/IpmbSensor.hpp b/include/IpmbSensor.hpp
+index a5fcfe2..78e5e12 100755
+--- a/include/IpmbSensor.hpp
++++ b/include/IpmbSensor.hpp
+@@ -59,6 +59,24 @@ struct IpmbSensor : public Sensor
+     bool powerOnDelay(void);
+ 
+ 
++    /**
++     * @brief Add CPU and DIMM inventory object path using Notify method
++     *        by the response value of Get CPU and Memory Temperature
++     *        command from Node Manager.
++     *
++     * @param[in] value - the response value from command.
++     */
++    void updatePresent(uint16_t value);
++
++    /**
++     * @brief Update Functional properity of CPU and DIMM using Set
++     *        Property command by the response value of
++     *        Get CPU and Memory Temperature command from Node Manager.
++     *
++     * @param[in] value - the response value from command.
++     */
++    void updateFunctional(uint16_t value);
++
+     IpmbType type;
+     IpmbSubType subType;
+     double scaleVal;
+@@ -78,6 +96,22 @@ struct IpmbSensor : public Sensor
+     int powerOnDelayTick;
+     int currentPowerOnDelayTick;
+ 
++    /**
++     * @brief A flag to change present status in inventory.
++    */
++    bool present;
++
++    /**
++     * @brief A flag to change functinoal status in inventory.
++    */
++    bool functional;
++
++    /**
++     * @brief DIMM label index
++     *
++    */
++    int labelIndex;
++
+     ReadingFormat readingFormat;
+ 
+   private:
+diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
+index 226b351..779c94a 100755
+--- a/src/IpmbSensor.cpp
++++ b/src/IpmbSensor.cpp
+@@ -54,6 +54,8 @@ static constexpr uint8_t lun = 0;
+ 
+ static constexpr uint8_t intelManufacturerLength = 3;
+ static constexpr uint8_t nmDeviceNotPresent = 0xFF;
++static constexpr uint8_t nmReserved = 0xFE;
++static constexpr uint8_t nmDataUnavailable = 0xFD;
+ static uint8_t totalCPUs = 0;
+ static uint8_t channelsPerCPU = 0;
+ static uint8_t dimmsPerChannel = 0;
+@@ -81,7 +83,10 @@ IpmbSensor::IpmbSensor(std::shared_ptr<sdbusplus::asio::connection>& conn,
+            "xyz.openbmc_project.Configuration.ExitAirTemp", ipmbMaxReading,
+            ipmbMinReading, PowerState::on),
+     deviceAddress(deviceAddress), objectServer(objectServer),
+-    dbusConnection(conn), waitTimer(io)
++    dbusConnection(conn), waitTimer(io),
++    tjmax(0), currentPowerOnDelayTick(0), isPreviousPowerStateOff(false),
++    present(false), functional(false), labelIndex(0), dimmChannel(0),
++    cpuIndex(0)
+ {
+     std::string dbusPath = sensorPathPrefix + sensorTypeName + "/" + name;
+ 
+@@ -221,27 +226,7 @@ void IpmbSensor::loadDefaults()
+                     0x00, 0x00, 0x00, 0x02, 0x00, 0x00,          0x00};
+         readingFormat = ReadingFormat::byte3;
+     }
+-    else if (type == IpmbType::CPUTemp)
+-    {
+-        commandAddress = meAddress;
+-        netfn = 0x2e;       // me bridge
+-        command = 0x4b;     // Get CPU and Memory Temperature
+-        if ((totalCPUs >0)&&(totalCPUs <= 4))
+-        {
+-            cpuMask = ~(0xff << totalCPUs);
+-            cpuMask = 0x80|cpuMask;
+-            commandData = {0x57, 0x01, 0x00, cpuMask, 0x00, 0x00, 0x00,
+-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+-        }
+-        else
+-        {
+-            commandData = {};
+-            std::cerr << "Invalid data from device: " << name
+-            << " ,incorrect total cpu number.\n";
+-        }
+-    }
+-    else if (type == IpmbType::CPUDTS)
++    else if ((type == IpmbType::CPUTemp) || (type == IpmbType::CPUDTS))
+     {
+         commandAddress = meAddress;
+         netfn = 0x2e;       // me bridge
+@@ -409,6 +394,180 @@ bool IpmbSensor::powerOnDelay(void)
+     return false;
+ }
+ 
++void IpmbSensor::updatePresent(uint16_t value)
++{
++    using Property = std::string;
++    using Value = std::variant<bool>;
++    using PropertyMap = std::map<Property, Value>;
++    using Interface = std::string;
++    using InterfaceMap = std::map<Interface, PropertyMap>;
++    using Object = sdbusplus::message::object_path;
++    using ObjectMap = std::map<Object, InterfaceMap>;
++    ObjectMap invObj;
++    InterfaceMap invIntf;
++    PropertyMap invProp;
++    int indexShift = deviceAddress + 1;
++    std::string objPathCPU = "/system/chassis/motherboard/cpu" + std::to_string(indexShift);
++    std::string objPathDIMM = "/system/chassis/motherboard/dimm" + std::to_string(labelIndex);
++    std::string propItemCPU = "xyz.openbmc_project.Inventory.Item.Cpu";
++    std::string propItemDIMM = "xyz.openbmc_project.Inventory.Item.Dimm";
++
++    if (value != nmDeviceNotPresent)
++    {
++        // device is present, add device to inventory if the flag is not present.
++        if (!present)
++        {
++            auto invMgrRsqMsg = dbusConnection->new_method_call(
++                                      "xyz.openbmc_project.Inventory.Manager",
++                                      "/xyz/openbmc_project/inventory",
++                                      "xyz.openbmc_project.Inventory.Manager",
++                                      "Notify");
++            if (type == IpmbType::CPUDTS)
++            {
++                invProp.emplace("Present", true);
++                invProp.emplace("Functional", true);
++                invIntf.emplace(propItemCPU.c_str(), std::move(invProp));
++                invObj.emplace(objPathCPU.c_str(), std::move(invIntf));
++                invMgrRsqMsg.append(invObj);
++            }
++            else if (type == IpmbType::DIMMTemp)
++            {
++                invProp.emplace("Present", true);
++                invProp.emplace("Functional", true);
++                invIntf.emplace(propItemDIMM.c_str(), std::move(invProp));
++                invObj.emplace(objPathDIMM.c_str(), std::move(invIntf));
++                invMgrRsqMsg.append(invObj);
++            }
++
++            try
++            {
++                // Add item to dbus inventory using Notify command.
++                auto respMsg = dbusConnection->call(invMgrRsqMsg);
++                if (respMsg.is_method_error())
++                {
++                    std::cerr << name << " updatePresent method failed !\n";
++                }
++                else
++                {
++                    // if success, update functional and present flag to true.
++                    present = true;
++                    functional = true;
++                }
++            }
++            catch (const sdbusplus::exception::SdBusError&)
++            {
++                std::cerr << name << " updatePresent failed !\n";
++            }
++        }
++    }
++}
++
++void IpmbSensor::updateFunctional(uint16_t value)
++{
++    int indexShift = deviceAddress + 1;
++    std::string invMgrSrv = "xyz.openbmc_project.Inventory.Manager";
++    std::string objPathCPU =
++    "/xyz/openbmc_project/inventory/system/chassis/motherboard/cpu" + std::to_string(indexShift);
++    std::string objPathDIMM =
++    "/xyz/openbmc_project/inventory/system/chassis/motherboard/dimm" + std::to_string(labelIndex);
++    std::string objDBusProp = "org.freedesktop.DBus.Properties";
++    std::string methodSet = "Set";
++    std::string propItemCPU = "xyz.openbmc_project.Inventory.Item.Cpu";
++    std::string propItemDIMM = "xyz.openbmc_project.Inventory.Item.Dimm";
++    sdbusplus::message::message method;
++
++    if (!present)
++    {
++        // return if the device not present.
++        return;
++    }
++
++    if((value != nmReserved) &&
++    (value != nmDataUnavailable) &&
++    (value != nmDeviceNotPresent))
++    {
++        // response value is normal, update functional in inventory if the flag is false.
++        if (!functional)
++        {
++            if (type == IpmbType::CPUDTS)
++            {
++                method = dbusConnection->new_method_call(invMgrSrv.c_str(),
++                objPathCPU.c_str(), objDBusProp.c_str(), methodSet.c_str());
++                method.append(propItemCPU.c_str());
++                method.append("Functional");
++                method.append(std::variant<bool>(true));
++            }
++            else if (type == IpmbType::DIMMTemp)
++            {
++                method = dbusConnection->new_method_call(invMgrSrv.c_str(),
++                objPathDIMM.c_str(), objDBusProp.c_str(), methodSet.c_str());
++                method.append(propItemDIMM.c_str());
++                method.append("Functional");
++                method.append(std::variant<bool>(true));
++            }
++
++            try
++            {
++                // send dbus call method
++                auto respMsg = dbusConnection->call(method);
++                if (respMsg.is_method_error())
++                {
++                    std::cerr << name << " updateFunctional method failed !\n";
++                }
++                else
++                {
++                    // if success, update functional flag.
++                    functional = true;
++                }
++            }
++            catch (const sdbusplus::exception::SdBusError&)
++            {
++                std::cerr << name << " updateFunctional failed !\n";
++            }
++        }
++    }
++    else
++    {
++        // response value is fail
++        if (functional)
++        {
++            if (type == IpmbType::CPUDTS)
++            {
++                method = dbusConnection->new_method_call(invMgrSrv.c_str(),
++                objPathCPU.c_str(), objDBusProp.c_str(), methodSet.c_str());
++                method.append(propItemCPU.c_str());
++                method.append("Functional");
++                method.append(std::variant<bool>(false));
++            }
++            else if (type == IpmbType::DIMMTemp)
++            {
++                method = dbusConnection->new_method_call(invMgrSrv.c_str(),
++                objPathDIMM.c_str(), objDBusProp.c_str(), methodSet.c_str());
++                method.append(propItemDIMM.c_str());
++                method.append("Functional");
++                method.append(std::variant<bool>(false));
++            }
++
++            try
++            {
++                auto respMsg = dbusConnection->call(method);
++                if (respMsg.is_method_error())
++                {
++                    std::cerr << name << " updateFunctional method failed !\n";
++                }
++                else
++                {
++                    functional = false;
++                }
++            }
++            catch (const sdbusplus::exception::SdBusError&)
++            {
++                std::cerr << name << " updateFunctional failed !\n";
++            }
++        }
++    }
++}
++
+ void IpmbSensor::read(void)
+ {
+     static constexpr size_t pollTime = 1; // in seconds
+@@ -424,6 +583,8 @@ void IpmbSensor::read(void)
+         // check sensor read state
+         if (!isPowerOn() && readState == PowerState::on)
+         {
++            // clear present flag while host off
++            present = false;
+             isPreviousPowerStateOff = true;
+             updateValue(0);
+             read();
+@@ -576,7 +737,9 @@ void IpmbSensor::read(void)
+                         read();
+                         return;
+                     }
+-                    if (cpu_dts == nmDeviceNotPresent)
++                    if ((cpu_dts == nmDeviceNotPresent) ||
++                    (cpu_dts == nmDataUnavailable) ||
++                    (cpu_dts == nmReserved))
+                     {
+                         value = 0;
+                     }
+@@ -603,12 +766,17 @@ void IpmbSensor::read(void)
+                     if (data.size() > data_offset)
+                     {
+                         value = data[data_offset];
++                        updatePresent(value);
++                        updateFunctional(value);
++
+                         if constexpr (debug)
+                         {
+                             std::cout<<"dts:"<<static_cast<int>(value)<<"\n";
+                             std::cout<<"-------------------\n";
+                         }
+-                        if (value == nmDeviceNotPresent)
++                        if ((value == nmDeviceNotPresent) ||
++                        (value == nmDataUnavailable) ||
++                        (value == nmReserved))
+                         {
+                             value = 0;
+                         }
+@@ -638,7 +806,12 @@ void IpmbSensor::read(void)
+                     if (data.size() > data_offset)
+                     {
+                         value = data[data_offset];
+-                        if (value == nmDeviceNotPresent)
++                        updatePresent(value);
++                        updateFunctional(value);
++
++                        if ((value == nmDeviceNotPresent) ||
++                        (value == nmDataUnavailable) ||
++                        (value == nmReserved))
+                         {
+                             value = 0;
+                         }
+@@ -912,10 +1085,7 @@ void createNMCmdSensors(
+                 dbusConnection, io, name, sensorConfiguration, objectServer,
+                 std::move(sensorThresholds), deviceAddress, sensorTypeName);
+             setReadState(powerState, sensor->readState);
+-            sensor->tjmax = 0;
+             sensor->powerOnDelayTick = data["PowerOnDelay"].get<int>();
+-            sensor->currentPowerOnDelayTick = 0;
+-            sensor->isPreviousPowerStateOff = false;
+             sensor->scaleVal = 1;
+             sensor->offsetVal = 0;
+ 
+@@ -959,10 +1129,7 @@ void createNMCmdSensors(
+                 dbusConnection, io, name, sensorConfiguration, objectServer,
+                 std::move(sensorThresholds), deviceAddress, sensorTypeName);
+             setReadState(powerState, sensor->readState);
+-            sensor->tjmax = 0;
+             sensor->powerOnDelayTick = data["PowerOnDelay"].get<int>();
+-            sensor->currentPowerOnDelayTick = 0;
+-            sensor->isPreviousPowerStateOff = false;
+             sensor->scaleVal = 1;
+             sensor->offsetVal = 0;
+ 
+@@ -972,6 +1139,7 @@ void createNMCmdSensors(
+                 sensor->cpuIndex = dimmConfig["CPUIndex"];
+                 sensor->unit = unitDegreesC;
+                 sensor->type = IpmbType::DIMMTemp;
++                sensor->labelIndex = dimmConfig["LabelIndex"];
+             }
+             if constexpr (debug)
+             {

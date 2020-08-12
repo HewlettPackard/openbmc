@@ -1,0 +1,181 @@
+From 765391d835654d28348393fec58d1142db003589 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 19:08:23 +0000
+Subject: [PATCH] Suport BIOS factory reset
+
+---
+ item_updater.cpp | 19 +++++++++++++++++++
+ item_updater.hpp | 48 +++++++++++++++++++++++++++++++++++++++++++++++-
+ utils.cpp        | 30 ++++++++++++++++++++++++++++++
+ utils.hpp        | 10 +++++++++-
+ 4 files changed, 105 insertions(+), 2 deletions(-)
+
+diff --git a/item_updater.cpp b/item_updater.cpp
+index 28d2baf..82b4ce2 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -37,6 +37,25 @@ using namespace phosphor::software::image;
+ namespace fs = std::filesystem;
+ using NotAllowed = sdbusplus::xyz::openbmc_project::Common::Error::NotAllowed;
+ 
++#ifdef HOST_BIOS_UPGRADE
++void GardReset::reset()
++{
++    int rc;
++
++    rc = utils::flashEraseMTD("host-reserved");
++    if (rc != 0)
++    {
++        log<level::ERR>("Failed to reset Host configuration",
++                        entry("RETURNCODE=%d", rc));
++    }
++    else
++    {
++        log<level::INFO>("Reset Host configuration sucessfully");
++    }
++    return;
++}
++#endif
++
+ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+ {
+ 
+diff --git a/item_updater.hpp b/item_updater.hpp
+index e572ad2..6c011b4 100644
+--- a/item_updater.hpp
++++ b/item_updater.hpp
+@@ -31,6 +31,48 @@ using VersionClass = phosphor::software::manager::Version;
+ using AssociationList =
+     std::vector<std::tuple<std::string, std::string, std::string>>;
+ 
++#ifdef HOST_BIOS_UPGRADE
++using GardResetInherit = sdbusplus::server::object::object<
++     sdbusplus::xyz::openbmc_project::Common::server::FactoryReset>;
++
++/** @class GardReset
++ *  @brief OpenBMC GARD factory reset implementation.
++ *  @details An implementation of xyz.openbmc_project.Common.FactoryReset under
++ *  /xyz/openbmc_project/software/gard.
++ */
++class GardReset : public GardResetInherit
++{
++  public:
++    /** @brief Constructs GardReset.
++     *
++     * @param[in] bus    - The Dbus bus object
++     * @param[in] path   - The Dbus object path
++     */
++    GardReset(sdbusplus::bus::bus& bus, const std::string& path) :
++        GardResetInherit(bus, path.c_str(), true), bus(bus), path(path)
++    {
++        std::vector<std::string> interfaces({interface});
++        bus.emit_interfaces_added(path.c_str(), interfaces);
++    }
++
++    virtual ~GardReset()
++    {
++        std::vector<std::string> interfaces({interface});
++        bus.emit_interfaces_removed(path.c_str(), interfaces);
++    }
++
++  protected:
++    static constexpr auto interface = "xyz.openbmc_project.Common.FactoryReset";
++    sdbusplus::bus::bus& bus;
++    std::string path;
++
++    /**
++     * @brief GARD factory reset - clears Hosy configuration.
++     */
++    virtual void reset();
++};
++#endif
++
+ /** @class ItemUpdater
+  *  @brief Manages the activation of the BMC version items.
+  */
+@@ -63,8 +105,8 @@ class ItemUpdater : public ItemUpdaterInherit
+         processBMCImage();
+ #ifdef HOST_BIOS_UPGRADE
+         processBIOSImage();
++        gardReset = std::make_unique<GardReset>(bus, "/xyz/openbmc_project/software/gard");
+ #endif
+-
+         restoreFieldModeStatus();
+         emit_object_added();
+     };
+@@ -273,6 +315,10 @@ class ItemUpdater : public ItemUpdaterInherit
+      */
+     void mirrorUbootToAlt();
+ 
++#ifdef HOST_BIOS_UPGRADE
++    std::unique_ptr<GardReset> gardReset;
++#endif
++
+     /** @brief Check the required image files
+      *
+      * @param[in] filePath - BMC tarball file path
+diff --git a/utils.cpp b/utils.cpp
+index 7d746d5..d6a4981 100644
+--- a/utils.cpp
++++ b/utils.cpp
+@@ -151,4 +151,34 @@ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
+     return response[0].first;
+ }
+ 
++int flashEraseMTD(const std::string& mtdName)
++{
++    std::string mtdDevice = getMtdDev(mtdName);
++    int rc = -1;
++
++    if (mtdDevice == "")
++    {
++        log<level::ERR>("Failed to match mtd device Name",
++                        entry("NAME=", mtdName.c_str()));
++        return rc;
++    }
++
++    // Erase mtd device by flash_eraseall command
++    std::string cmd = "flash_eraseall /dev/" + mtdDevice;
++    std::array<char, 512> buffer;
++    std::stringstream result;
++
++    FILE* pipe = popen(cmd.c_str(), "r");
++    if (!pipe)
++    {
++        throw std::runtime_error("popen() failed!");
++    }
++    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
++    {
++        result << buffer.data();
++    }
++    rc = pclose(pipe);
++
++    return rc;
++}
+ } // namespace utils
+diff --git a/utils.hpp b/utils.hpp
+index 815debd..00a4e4d 100644
+--- a/utils.hpp
++++ b/utils.hpp
+@@ -19,7 +19,6 @@ enum {
+   TOTAL
+ };
+ 
+-#define HOST_MTD          "/dev/mtd7"
+ #define MAGIC_WORD        "startProperties"
+ #define ROMFAMILY         "romFamily="
+ #define ROMYEAR           "romYear="
+@@ -57,4 +56,13 @@ std::string getHostVersion();
+ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
+                        const std::string& interface);
+ 
++/**
++ * @brief Flash erase MTD device
++ *
++ * @param[in] mtdName - MTD device name
++ *
++ * @return Result
++ **/
++int flashEraseMTD(const std::string& mtdName);
++
+ } // namespace utils

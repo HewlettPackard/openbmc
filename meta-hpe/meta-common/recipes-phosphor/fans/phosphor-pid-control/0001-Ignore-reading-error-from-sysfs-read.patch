@@ -1,0 +1,33 @@
+From 54db04837e72de8cbcdcf68ff0cbba9bed4bdf99 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Sat, 27 Jul 2019 04:27:58 +0800
+Subject: [PATCH] Ignore reading error from sysfs-read
+
+---
+ sysfs/sysfsread.cpp | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/sysfs/sysfsread.cpp b/sysfs/sysfsread.cpp
+index a070af2..ad2a52f 100644
+--- a/sysfs/sysfsread.cpp
++++ b/sysfs/sysfsread.cpp
+@@ -22,12 +22,15 @@
+ 
+ ReadReturn SysFsRead::read(void)
+ {
+-    int64_t value;
++    int64_t value = 0;
+     std::ifstream ifs;
+ 
+-    ifs.open(_path);
+-    ifs >> value;
+-    ifs.close();
++    try {
++      ifs.open(_path);
++      ifs >> value;
++      ifs.close();
++    } catch (std::exception &e) {
++    }
+ 
+     struct ReadReturn r = {static_cast<double>(value),
+                            std::chrono::high_resolution_clock::now()};

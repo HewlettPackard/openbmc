@@ -1,0 +1,84 @@
+From 94473481c04db10233c9089914571efaf94ef524 Mon Sep 17 00:00:00 2001
+From: Louis Hsu <kai-hsiang.hsu@hpe.com>
+Date: Wed, 11 Dec 2019 14:08:07 +0800
+Subject: [PATCH] Remove association interface when destroy object
+
+---
+ association_manager.cpp | 20 ++++++++++++++++++++
+ association_manager.hpp |  8 ++++++++
+ manager.cpp             |  3 +++
+ 3 files changed, 31 insertions(+)
+ mode change 100644 => 100755 association_manager.cpp
+ mode change 100644 => 100755 association_manager.hpp
+ mode change 100644 => 100755 manager.cpp
+
+diff --git a/association_manager.cpp b/association_manager.cpp
+old mode 100644
+new mode 100755
+index fd36eef..8c2a0d3
+--- a/association_manager.cpp
++++ b/association_manager.cpp
+@@ -138,6 +138,26 @@ void Manager::createAssociation(const std::string& forwardPath,
+         object->second->associations(std::move(prop));
+     }
+ }
++
++void Manager::removeAssociation(const std::string& objPath)
++{
++    auto object = _associationIfaces.find(objPath);
++    if (object == _associationIfaces.end())
++    {
++        // no association interface
++        return;
++    }
++    else
++    {
++        auto position = std::find(_handled.begin(), _handled.end(), objPath);
++        if (position != _handled.end())
++        {
++            _handled.erase(position);
++        }
++        _associationIfaces.erase(object);
++    }
++}
++
+ } // namespace associations
+ } // namespace manager
+ } // namespace inventory
+diff --git a/association_manager.hpp b/association_manager.hpp
+old mode 100644
+new mode 100755
+index 240bbdc..2a15ba0
+--- a/association_manager.hpp
++++ b/association_manager.hpp
+@@ -94,6 +94,14 @@ class Manager
+         return _associations;
+     }
+ 
++    /**
++     * @brief Remove instance of a xyz.openbmc_project.Association
++     *        interface using the passed in object path.
++     *
++     * @param[in] objectPath - the D-Bus object path to check for associations
++     */
++    void removeAssociation(const std::string& objPath);
++
+   private:
+     /**
+      *  @brief Loads the association YAML into the _associations data
+diff --git a/manager.cpp b/manager.cpp
+old mode 100644
+new mode 100755
+index c9d84c6..9391722
+--- a/manager.cpp
++++ b/manager.cpp
+@@ -283,6 +283,9 @@ void Manager::destroyObjects(const std::vector<const char*>& paths)
+         p.assign(_root);
+         p.append(path);
+         _bus.emit_object_removed(p.c_str());
++#ifdef CREATE_ASSOCIATIONS
++        _associations.removeAssociation(p);
++#endif
+         _refs.erase(p);
+     }
+ }

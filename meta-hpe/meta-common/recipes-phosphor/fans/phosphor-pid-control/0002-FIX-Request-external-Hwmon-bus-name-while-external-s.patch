@@ -1,0 +1,47 @@
+From 04b5d3ec3c52accad6348cef8eba1f85bcd96b2f Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Fri, 6 Mar 2020 15:21:44 +0800
+Subject: [PATCH] FIX: Request external Hwmon bus name while external sensor
+ define in configuration
+
+---
+ main.cpp            | 1 -
+ sensors/builder.cpp | 6 ++++++
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/main.cpp b/main.cpp
+index be0691d..dee3dd7 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -147,7 +147,6 @@ int main(int argc, char* argv[])
+     // Create a manager for the ModeBus because we own it.
+     sdbusplus::server::manager::manager(
+         static_cast<sdbusplus::bus::bus&>(modeControlBus), modeRoot);
+-    hostBus.request_name("xyz.openbmc_project.Hwmon.external");
+     modeControlBus.request_name("xyz.openbmc_project.State.FanCtrl");
+
+     /*
+diff --git a/sensors/builder.cpp b/sensors/builder.cpp
+index 4da1cf2..249147d 100644
+--- a/sensors/builder.cpp
++++ b/sensors/builder.cpp
+@@ -44,6 +44,7 @@ SensorManager
+     SensorManager mgmr(passive, host);
+     auto& hostSensorBus = mgmr.getHostBus();
+     auto& passiveListeningBus = mgmr.getPassiveBus();
++    static bool hostBusNameRequested = false;
+
+     for (const auto& it : config)
+     {
+@@ -157,6 +158,11 @@ SensorManager
+
+             if (IOInterfaceType::EXTERNAL == rtype)
+             {
++                if (!hostBusNameRequested)
++                {
++                    hostSensorBus.request_name("xyz.openbmc_project.Hwmon.external");
++                    hostBusNameRequested = true;
++                }
+                 std::cerr << "Creating HostSensor: " << name
+                           << " path: " << info->readPath << "\n";
+

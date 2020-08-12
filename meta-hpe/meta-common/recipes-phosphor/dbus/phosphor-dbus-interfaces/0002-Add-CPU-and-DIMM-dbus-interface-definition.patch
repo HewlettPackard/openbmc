@@ -1,0 +1,45 @@
+From a8652e85ac85aaa4b3727140d4679a5ae341d09b Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 6 Jul 2020 20:30:21 +0000
+Subject: [PATCH] Add CPU and DIMM dbus interface definition (updated)
+
+---
+ xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml  | 9 +++++++++
+ xyz/openbmc_project/Inventory/Item/Dimm.interface.yaml | 8 ++++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml b/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
+index 83a99dd..d9d3d65 100644
+--- a/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
++++ b/xyz/openbmc_project/Inventory/Item/Cpu.interface.yaml
+@@ -1,2 +1,11 @@
+ description: >
+     Implement to provide CPU attributes.
++properties:
++    - name: Present
++      type: boolean
++      description: >
++          CPU present status
++    - name: Functional
++      type: boolean
++      description: >
++          CPU functional status
+diff --git a/xyz/openbmc_project/Inventory/Item/Dimm.interface.yaml b/xyz/openbmc_project/Inventory/Item/Dimm.interface.yaml
+index 0244a44..bded39a 100644
+--- a/xyz/openbmc_project/Inventory/Item/Dimm.interface.yaml
++++ b/xyz/openbmc_project/Inventory/Item/Dimm.interface.yaml
+@@ -45,6 +45,14 @@ properties:
+           between the time at which the column address and the column address
+           strobe signal are presented to the memory module and the time at
+           which the corresponding data is made available by the memory module.
++    - name: Present
++      type: boolean
++      description: >
++          DIMM present status
++    - name: Functional
++      type: boolean
++      description: >
++          DIMM functional status
+     - name: RevisionCode
+       type: uint16
+       description: >

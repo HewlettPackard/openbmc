@@ -1,0 +1,49 @@
+From cc5725c24c937148189c530229c361d975b02528 Mon Sep 17 00:00:00 2001
+From: Louis Hsu <kai-hsiang.hsu@hpe.com>
+Date: Fri, 17 Jan 2020 13:59:27 +0800
+Subject: [PATCH] Fix ipmitool edit fru failed
+
+---
+ writefrudata.cpp | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/writefrudata.cpp b/writefrudata.cpp
+index 0b70d3f..3a438e8 100644
+--- a/writefrudata.cpp
++++ b/writefrudata.cpp
+@@ -372,6 +372,12 @@ int verifyFruData(const uint8_t* data, const size_t len, bool validateCrc)
+     uint8_t checksum = 0;
+     int rc = -1;
+ 
++    if (!validateCrc)
++    {
++        // There's nothing else to do for this area.
++        return EXIT_SUCCESS;
++    }
++
+     // Validate for first byte to always have a value of [1]
+     if (data[0] != IPMI_FRU_HDR_BYTE_ZERO)
+     {
+@@ -387,12 +393,6 @@ int verifyFruData(const uint8_t* data, const size_t len, bool validateCrc)
+     }
+ #endif
+ 
+-    if (!validateCrc)
+-    {
+-        // There's nothing else to do for this area.
+-        return EXIT_SUCCESS;
+-    }
+-
+     // See if the calculated CRC matches with the embedded one.
+     // CRC to be calculated on all except the last one that is CRC itself.
+     checksum = calculateCRC(data, len - 1);
+@@ -494,7 +494,8 @@ int ipmiPopulateFruAreas(uint8_t* fruData, const size_t dataLen,
+             // Validate the CRC, but not for the internal use area, since its
+             // contents beyond the first byte are not defined in the spec and
+             // it may not end with a CRC byte.
+-            bool validateCrc = fruEntry != IPMI_FRU_INTERNAL_OFFSET;
++            bool validateCrc = ((fruEntry != IPMI_FRU_INTERNAL_OFFSET)
++                               && (fruEntry != IPMI_FRU_MULTI_OFFSET));
+             rc = verifyFruData(areaData, areaLen, validateCrc);
+             if (rc < 0)
+             {

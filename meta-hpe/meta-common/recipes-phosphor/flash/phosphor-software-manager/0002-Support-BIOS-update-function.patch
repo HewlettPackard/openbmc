@@ -1,0 +1,590 @@
+From 317ff6b2f84bdd409419591821bf71227edc9435 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 18:54:20 +0000
+Subject: [PATCH] Support BIOS update function
+
+---
+ image_manager.cpp                |  46 ++++++--
+ item_updater.cpp                 | 183 +++++++++++++++++++++++++++----
+ item_updater.hpp                 |  44 ++++++--
+ obmc-flash-host-bios@.service.in |   2 +-
+ utils.cpp                        |  73 ++++++++++++
+ utils.hpp                        |  41 +++++++
+ version.cpp                      |  25 +++++
+ version.hpp                      |   9 ++
+ 8 files changed, 382 insertions(+), 41 deletions(-)
+
+diff --git a/image_manager.cpp b/image_manager.cpp
+index f11d124..2de2486 100644
+--- a/image_manager.cpp
++++ b/image_manager.cpp
+@@ -126,6 +126,7 @@ int Manager::processImage(const std::string& tarFilePath)
+ 
+     // Get running machine name
+     std::string currMachine = Version::getBMCMachine(OS_RELEASE_FILE);
++    std::string hostMachine = Version::getHostMachine(bus);
+     if (currMachine.empty())
+     {
+         log<level::ERR>("Failed to read machine name from osRelease",
+@@ -136,19 +137,10 @@ int Manager::processImage(const std::string& tarFilePath)
+     // Get machine name for image to be upgraded
+     std::string machineStr =
+         Version::getValue(manifestPath.string(), "MachineName");
+-    if (!machineStr.empty())
++    if (machineStr.empty())
+     {
+-        if (machineStr != currMachine)
+-        {
+-            log<level::ERR>("BMC upgrade: Machine name doesn't match",
+-                            entry("CURR_MACHINE=%s", currMachine.c_str()),
+-                            entry("NEW_MACHINE=%s", machineStr.c_str()));
+-            return -1;
+-        }
+-    }
+-    else
+-    {
+-        log<level::WARNING>("No machine name in Manifest file");
++        log<level::ERR>("No machine name in Manifest file");
++        return -1;
+     }
+ 
+     // Get purpose
+@@ -171,6 +163,36 @@ int Manager::processImage(const std::string& tarFilePath)
+                         " Setting to Unknown.");
+     }
+ 
++    // Check MachineName based on Purpose
++    switch (purpose)
++    {
++      case Version::VersionPurpose::BMC:
++        if (machineStr != currMachine)
++        {
++            log<level::ERR>("BMC upgrade: Machine name doesn't match",
++                            entry("BMC_MACHINE=%s", currMachine.c_str()),
++                            entry("NEW_MACHINE=%s", machineStr.c_str()));
++            return -1;
++        }
++        break;
++#ifdef HOST_BIOS_UPGRADE
++      case Version::VersionPurpose::Host:
++        if (machineStr != hostMachine)
++        {
++            log<level::ERR>("HOST upgrade: Machine name doesn't match",
++                            entry("HOST_MACHINE=%s", hostMachine.c_str()),
++                            entry("NEW_MACHINE=%s", machineStr.c_str()));
++            return -1;
++        }
++        break;
++#endif
++      /* TODO : Support More Type Image */
++      default:
++        log<level::ERR>("Error: Not support Purpose.");
++        return -1;
++        break;
++    }
++
+     // Compute id
+     auto id = Version::getId(version);
+ 
+diff --git a/item_updater.cpp b/item_updater.cpp
+index e6dd298..28d2baf 100644
+--- a/item_updater.cpp
++++ b/item_updater.cpp
+@@ -52,7 +52,6 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+     msg.read(objPath, interfaces);
+     std::string path(std::move(objPath));
+     std::string filePath;
+-
+     for (const auto& intf : interfaces)
+     {
+         if (intf.first == VERSION_IFACE)
+@@ -139,6 +138,13 @@ void ItemUpdater::createActivation(sdbusplus::message::message& msg)
+             std::make_unique<phosphor::software::manager::Delete>(bus, path,
+                                                                   *versionPtr);
+         versions.insert(std::make_pair(versionId, std::move(versionPtr)));
++
++        // Need to clear association by assigning an empty List
++        AssociationList temp = {};
++        this->associations(temp);
++
++        // Re-assign associations
++        this->associations(assocs);
+     }
+     return;
+ }
+@@ -319,6 +325,135 @@ void ItemUpdater::processBMCImage()
+     return;
+ }
+ 
++#ifdef HOST_BIOS_UPGRADE
++void ItemUpdater::processBIOSImage()
++{
++    std::string version = utils::getHostVersion();
++
++    auto id = VersionClass::getId(version);
++
++    if (id.empty())
++    {
++        // Possibly a corrupted PNOR
++        return;
++    }
++
++    auto activationState = server::Activation::Activations::Active;
++    if (version.empty())
++    {
++        log<level::ERR>("Failed to read version");
++        activationState = server::Activation::Activations::Invalid;
++    }
++
++    auto purpose = server::Version::VersionPurpose::Host;
++    auto path = fs::path(SOFTWARE_OBJPATH) / id;
++    AssociationList associations = {};
++
++    if (activationState == server::Activation::Activations::Active)
++    {
++        // Create an association to the host inventory item
++        associations.emplace_back(std::make_tuple(ACTIVATION_FWD_ASSOCIATION,
++                                                  ACTIVATION_REV_ASSOCIATION,
++                                                  "/xyz/openbmc_project/inventory/system/chassis"));
++
++        // Create an active association since this image is active
++        createActiveAssociation(path);
++    }
++
++    // Create Activation instance for this version.
++    activations.insert(std::make_pair(
++        id, std::make_unique<Activation>(
++                bus, path, *this, id, activationState, associations)));
++
++    // If Active, create RedundancyPriority instance for this version.
++    if (activationState == server::Activation::Activations::Active)
++    {
++        // For now only one PNOR is supported with static layout
++        activations.find(id)->second->redundancyPriority =
++            std::make_unique<RedundancyPriority>(
++                bus, path, *(activations.find(id)->second), 0);
++    }
++
++    // Create Version instance for this version.
++    auto versionPtr = std::make_unique<VersionClass>(
++        bus, path, version, purpose, "",
++        std::bind(&ItemUpdater::erase, this, std::placeholders::_1));
++
++/*
++    // TODO: Placeholder to validate BIOS image
++    if (!versionPtr->isFunctional()) {
++    }
++*/
++    versionPtr->deleteObject =
++            std::make_unique<phosphor::software::manager::Delete>(
++            bus, path, *versionPtr);
++    versions.insert(std::make_pair(id, std::move(versionPtr)));
++
++    if (!id.empty())
++    {
++        createFunctionalAssociation(path);
++    }
++}
++
++void ItemUpdater::biosErase(std::string entryId)
++{
++    // Removing entry in versions map
++    auto it = versions.find(entryId);
++    if (it == versions.end())
++    {
++        log<level::ERR>(("Error: Failed to find version " + entryId +
++                         " in item updater versions map."
++                         " Unable to remove.")
++                            .c_str());
++    }
++    else
++    {
++        versions.erase(entryId);
++    }
++
++    // Removing entry in activations map
++    auto ita = activations.find(entryId);
++    if (ita == activations.end())
++    {
++        log<level::ERR>(("Error: Failed to find version " + entryId +
++                         " in item updater activations map."
++                         " Unable to remove.")
++                            .c_str());
++    }
++    else
++    {
++        removeAssociations(ita->second->path);
++        activations.erase(entryId);
++    }
++    return;
++}
++
++bool ItemUpdater::freeBiosSpace()
++{
++    using SVersion = server::Version;
++    using VersionPurpose = SVersion::VersionPurpose;
++
++    // For now assume static layout only has 1 active PNOR,
++    // so erase the active PNOR
++    for (const auto& iter : activations)
++    {
++        if (iter.second.get()->activation() ==
++            server::Activation::Activations::Active)
++        {
++            auto pVersionId = iter.second->versionId;
++            auto pPurpose = versions.find(pVersionId)->second->purpose();
++
++            if (pPurpose == VersionPurpose::Host)
++            {
++                biosErase(pVersionId);
++            }
++        }
++    }
++    // No active PNOR means PNOR is empty or corrupted
++    return true;
++}
++#endif
++
+ void ItemUpdater::erase(std::string entryId)
+ {
+     // Find entry in versions map
+@@ -677,29 +812,35 @@ void ItemUpdater::freeSpace(Activation& caller)
+              server::Activation::Activations::Failed))
+         {
+             count++;
+-            // Don't put the functional version on the queue since we can't
+-            // remove the "running" BMC version.
+-            // If ACTIVE_BMC_MAX_ALLOWED <= 1, there is only one active BMC,
+-            // so remove functional version as well.
+-            // Don't delete the the Activation object that called this function.
+-            if ((versions.find(iter.second->versionId)
+-                     ->second->isFunctional() &&
+-                 ACTIVE_BMC_MAX_ALLOWED > 1) ||
+-                (iter.second->versionId == caller.versionId))
+-            {
+-                continue;
+-            }
++            auto pVersionId = iter.second->versionId;
++            auto pPurpose = versions.find(pVersionId)->second->purpose();
+ 
+-            // Failed activations don't have priority, assign them a large value
+-            // for sorting purposes.
+-            auto priority = 999;
+-            if (iter.second.get()->activation() ==
+-                server::Activation::Activations::Active)
++            if (pPurpose == VersionPurpose::BMC)
+             {
+-                priority = iter.second->redundancyPriority.get()->priority();
+-            }
++                // Don't put the functional version on the queue since we can't
++                // remove the "running" BMC version.
++                // If ACTIVE_BMC_MAX_ALLOWED <= 1, there is only one active BMC,
++                // so remove functional version as well.
++                // Don't delete the the Activation object that called this function.
++                if ((versions.find(iter.second->versionId)
++                         ->second->isFunctional() &&
++                     ACTIVE_BMC_MAX_ALLOWED > 1) ||
++                    (iter.second->versionId == caller.versionId))
++                {
++                    continue;
++                }
+ 
+-            versionsPQ.push(std::make_pair(priority, iter.second->versionId));
++                // Failed activations don't have priority, assign them a large value
++                // for sorting purposes.
++                auto priority = 999;
++                if (iter.second.get()->activation() ==
++                    server::Activation::Activations::Active)
++                {
++                    priority = iter.second->redundancyPriority.get()->priority();
++                }
++
++                versionsPQ.push(std::make_pair(priority, iter.second->versionId));
++            }
+         }
+     }
+ 
+diff --git a/item_updater.hpp b/item_updater.hpp
+index 721d371..e572ad2 100644
+--- a/item_updater.hpp
++++ b/item_updater.hpp
+@@ -61,6 +61,10 @@ class ItemUpdater : public ItemUpdaterInherit
+     {
+         setBMCInventoryPath();
+         processBMCImage();
++#ifdef HOST_BIOS_UPGRADE
++        processBIOSImage();
++#endif
++
+         restoreFieldModeStatus();
+         emit_object_added();
+     };
+@@ -89,6 +93,32 @@ class ItemUpdater : public ItemUpdaterInherit
+      */
+     void processBMCImage();
+ 
++#ifdef HOST_BIOS_UPGRADE
++    /**
++     * @brief Create and populate the active BIOS Version.
++     */
++    void processBIOSImage();
++
++    /** @brief Brings the total number of active PNOR versions to
++     *         ACTIVE_PNOR_MAX_ALLOWED -1. This function is intended to be
++     *         run before activating a new PNOR version. If this function
++     *         needs to delete any PNOR version(s) it will delete the
++     *         version(s) with the highest priority, skipping the
++     *         functional PNOR version.
++     *
++     *  @return - Return if space is freed or not
++     */
++    bool freeBiosSpace();
++
++		/**
++     * @brief BIOS erase specified entry D-Bus object
++     *        if Action property is not set to Active
++     *
++     * @param[in] entryId - unique identifier of the entry
++     */
++    void biosErase(std::string entryId);
++#endif
++
+     /**
+      * @brief Erase specified entry D-Bus object
+      *        if Action property is not set to Active
+@@ -109,6 +139,13 @@ class ItemUpdater : public ItemUpdaterInherit
+      */
+     void createActiveAssociation(const std::string& path);
+ 
++    /** @brief Creates a functional association to the
++     *  "running" BMC software image
++     *
++     * @param[in]  path - The path to create the association to.
++     */
++    void createFunctionalAssociation(const std::string& path);
++
+     /** @brief Removes the associations from the provided software image path
+      *
+      * @param[in]  path - The path to remove the associations from.
+@@ -208,13 +245,6 @@ class ItemUpdater : public ItemUpdaterInherit
+     /** @brief Restores field mode status on reboot. */
+     void restoreFieldModeStatus();
+ 
+-    /** @brief Creates a functional association to the
+-     *  "running" BMC software image
+-     *
+-     * @param[in]  path - The path to create the association to.
+-     */
+-    void createFunctionalAssociation(const std::string& path);
+-
+     /** @brief Persistent sdbusplus D-Bus bus connection. */
+     sdbusplus::bus::bus& bus;
+ 
+diff --git a/obmc-flash-host-bios@.service.in b/obmc-flash-host-bios@.service.in
+index 13a01af..da8e4db 100644
+--- a/obmc-flash-host-bios@.service.in
++++ b/obmc-flash-host-bios@.service.in
+@@ -4,4 +4,4 @@ Description=Flash Host Bios image %I to Host
+ [Service]
+ Type=oneshot
+ RemainAfterExit=no
+-ExecStart=echo Please add custom command for flashing image /tmp/image/%i
++ExecStart=flashcp -v /tmp/images/%I/ImageHost.pnor /dev/mtd7
+diff --git a/utils.cpp b/utils.cpp
+index d3faed3..7c114b8 100644
+--- a/utils.cpp
++++ b/utils.cpp
+@@ -1,5 +1,7 @@
+ #include "utils.hpp"
+ 
++#include <sstream>
++#include <fstream>
+ #include <phosphor-logging/log.hpp>
+ 
+ namespace utils
+@@ -7,6 +9,77 @@ namespace utils
+ 
+ using namespace phosphor::logging;
+ 
++inline
++size_t offset(const char* buf, size_t len, const char* str)
++{
++  return std::search(buf, buf + len, str, str + strlen(str)) - buf;
++}
++
++int parseVersion(std::string& property, std::string& version) {
++  std::size_t pos;
++  std::map<int, std::string> hostPropertyData;
++  std::string line;
++  std::stringstream input(property);
++  char buf[255] = {0};
++
++  std::getline(input, line); // Get magic word
++  for(int i = 0; i < TOTAL; i++)
++  {
++    std::getline(input, line);
++    pos = line.find(_hostPropertyMap.at(i));
++
++    if (pos != std::string::npos) {
++      hostPropertyData[i] = line.substr(_hostPropertyMap.at(i).size());
++      hostPropertyData[i].erase(hostPropertyData[i].end()-1, hostPropertyData[i].end()); // Remove the last null
++    } else {
++      log<level::ERR>("Host information incorrect!");
++      return 0;
++    }
++  }
++
++  // Compose Host Version Information
++  snprintf(buf, 255, "%s v%s.%s (%s/%s/%s)",
++          hostPropertyData[FAMILY].data(), hostPropertyData[MAJOR].data(),
++          hostPropertyData[MINOR].data(), hostPropertyData[DAY].data(),
++          hostPropertyData[MONTH].data(), hostPropertyData[YEAR].data());
++  version = buf;
++
++  return 1;
++}
++
++std::string getHostVersion() {
++  std::ifstream efile;
++  std::string property;
++  std::string version("unknown-0\nProduct-unknown-0");
++  char buffer[BUF_SIZE];
++
++  try
++  {
++    efile.open(HOST_MTD);
++    efile.seekg(PROPERTY_OFFSET, std::ios::beg);
++    efile.read(buffer, BUF_SIZE);
++    efile.close();
++  }
++  catch (const std::exception& e)
++  {
++    if (!efile.eof())
++    {
++      log<level::ERR>("Error in reading host information");
++    }
++    efile.close();
++  }
++
++  size_t propOffset = offset(buffer, BUF_SIZE, MAGIC_WORD);
++  if (propOffset != BUF_SIZE) { // Found magic word
++    std::string property(buffer+propOffset);
++    if (!parseVersion(property, version)) {
++      version = "unknown-0\nProduct-unknown-0";
++    }
++  }
++
++  return version;
++}
++
+ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,
+                        const std::string& interface)
+ {
+diff --git a/utils.hpp b/utils.hpp
+index 7a4150d..815debd 100644
+--- a/utils.hpp
++++ b/utils.hpp
+@@ -8,6 +8,47 @@
+ namespace utils
+ {
+ 
++enum {
++  FAMILY = 0,
++  YEAR,
++  MONTH,
++  DAY,
++  MAJOR,
++  MINOR,
++  PERSONALITY,
++  TOTAL
++};
++
++#define HOST_MTD          "/dev/mtd7"
++#define MAGIC_WORD        "startProperties"
++#define ROMFAMILY         "romFamily="
++#define ROMYEAR           "romYear="
++#define ROMMONTH          "romMonth="
++#define ROMDAY            "romDay="
++#define ROMMAJOR          "romMajor="
++#define ROMMINOR          "romMinor="
++#define ROMPERSONALITY    "personalities="
++
++#define PROPERTY_OFFSET   0x50000
++#define BUF_SIZE          0x1000      // 4K
++
++const std::map<int, std::string> _hostPropertyMap = {
++  {FAMILY,      ROMFAMILY},
++  {YEAR,        ROMYEAR},
++  {MONTH,       ROMMONTH},
++  {DAY,         ROMDAY},
++  {MAJOR,       ROMMAJOR},
++  {MINOR,       ROMMINOR},
++  {PERSONALITY, ROMPERSONALITY}
++};
++
++/**
++ * @brief Get Host FW version
++ *
++ * @return the FW version as a string
++ **/
++std::string getHostVersion();
++
+ /**
+  * @brief Get the bus service
+  *
+diff --git a/version.cpp b/version.cpp
+index 18f3f4f..f1e0a36 100644
+--- a/version.cpp
++++ b/version.cpp
+@@ -127,6 +127,31 @@ std::string Version::getBMCMachine(const std::string& releaseFilePath)
+     return machine;
+ }
+ 
++std::string Version::getHostMachine(sdbusplus::bus::bus& bus)
++{
++    auto method = bus.new_method_call("xyz.openbmc_project.Inventory.Manager",
++                                      "/xyz/openbmc_project/inventory/system/chassis/motherboard",
++                                      "org.freedesktop.DBus.Properties", "Get");
++    method.append("xyz.openbmc_project.Inventory.Item", "PrettyName");
++
++    try
++    {
++        auto reply = bus.call(method);
++
++        std::variant<std::string> hostModel;
++        reply.read(hostModel);
++
++        return std::get<std::string>(hostModel);
++    }
++    catch (const sdbusplus::exception::SdBusError& e)
++    {
++        log<level::ERR>("Error in getting HostMachine",
++                        entry("ERROR=%s", e.what()));
++    }
++
++    return std::string{};
++}
++
+ std::string Version::getBMCVersion(const std::string& releaseFilePath)
+ {
+     std::string versionKey = "VERSION_ID=";
+diff --git a/version.hpp b/version.hpp
+index 9cf76da..58ce7b8 100644
+--- a/version.hpp
++++ b/version.hpp
+@@ -134,6 +134,15 @@ class Version : public VersionInherit
+      */
+     bool isFunctional();
+ 
++    /**
++     * @brief Get host machine name string.
++     *
++     * @param[in] bus - The D-Bus bus object
++     *
++     * @return The host machine name string.
++     */
++    static std::string getHostMachine(sdbusplus::bus::bus& bus);
++
+     /** @brief Persistent Delete D-Bus object */
+     std::unique_ptr<Delete> deleteObject;
+ 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Phosphor-Pid-Control Margin-based Fan Control Daemon
+Wants=xyz.openbmc_project.ipmbsensor.service
+After=xyz.openbmc_project.ipmbsensor.service
+Wants=mapper-wait@-xyz-openbmc_project-sensors-temperature-PS_Zone.service
+After=mapper-wait@-xyz-openbmc_project-sensors-temperature-PS_Zone.service
+Wants=mapper-wait@-xyz-openbmc_project-sensors-temperature-ambient2.service
+After=mapper-wait@-xyz-openbmc_project-sensors-temperature-ambient2.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/swampd
+RestartSec=5
+StartLimitInterval=0
+Type=simple
+
+[Install]
+WantedBy=basic.target

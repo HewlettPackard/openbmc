@@ -1,0 +1,27 @@
+bmc_booted:
+    heartbeat:
+        Action: 'Blink'
+        DutyOn: 50
+        Period: 1000
+
+power_on:
+    power:
+        Action: 'On'
+
+enclosure_fault:
+    health_red:
+        Action: 'On'
+    health_amber:
+        Action: 'Off'
+
+enclosure_identify:
+    identify:
+        Action: 'On'
+        DutyOn: 50
+        Period: 0
+
+lamp_test:
+    identify:
+        Action: 'On'
+    health_red:
+        Action: 'On'

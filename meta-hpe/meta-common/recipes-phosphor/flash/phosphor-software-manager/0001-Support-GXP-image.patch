@@ -1,0 +1,24 @@
+From 7726ae13adf0a731b3e5257b71bebd6c8768b16e Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 18:49:55 +0000
+Subject: [PATCH] Support GXP image
+
+---
+ images.hpp | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/images.hpp b/images.hpp
+index 7801ea3..8b27ac5 100644
+--- a/images.hpp
++++ b/images.hpp
+@@ -12,7 +12,9 @@ namespace image
+ 
+ // BMC flash image file name list.
+ const std::vector<std::string> bmcImages = {"image-kernel", "image-rofs",
+-                                            "image-rwfs", "image-u-boot"};
++                                            "image-rwfs", "image-u-boot",
++                                            "image-section"};
++
+ // BMC flash image file name list for full flash image (image-bmc)
+ const std::string bmcFullImages = {"image-bmc"};
+ 

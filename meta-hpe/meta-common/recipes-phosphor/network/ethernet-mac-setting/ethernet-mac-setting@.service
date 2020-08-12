@@ -1,0 +1,15 @@
+[Unit]
+Description=Setup MAC address for eth%i
+Wants=network-pre.target
+Before=network-pre.target
+Wants=xyz.openbmc_project.Inventory.Manager.service
+After=xyz.openbmc_project.Inventory.Manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "ethernet-mac-setting.sh %i"
+SyslogIdentifier=ethernet-mac-setting@%i
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

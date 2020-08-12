@@ -1,0 +1,82 @@
+description: >
+    inventory fixups
+
+events:
+    - name: Remove all cpu and dimm objects at service startup
+      description: >
+          Remove all cpu and dimm objects at service startup
+      type: startup
+      actions:
+          - name: destroyObjects
+            paths:
+              - /system/chassis/motherboard/cpu1
+              - /system/chassis/motherboard/cpu2
+              - /system/chassis/motherboard/dimm1
+              - /system/chassis/motherboard/dimm2
+              - /system/chassis/motherboard/dimm3
+              - /system/chassis/motherboard/dimm4
+              - /system/chassis/motherboard/dimm5
+              - /system/chassis/motherboard/dimm6
+              - /system/chassis/motherboard/dimm7
+              - /system/chassis/motherboard/dimm8
+              - /system/chassis/motherboard/dimm9
+              - /system/chassis/motherboard/dimm10
+              - /system/chassis/motherboard/dimm11
+              - /system/chassis/motherboard/dimm12
+              - /system/chassis/motherboard/dimm13
+              - /system/chassis/motherboard/dimm14
+              - /system/chassis/motherboard/dimm15
+              - /system/chassis/motherboard/dimm16
+              - /system/chassis/motherboard/dimm17
+              - /system/chassis/motherboard/dimm18
+              - /system/chassis/motherboard/dimm19
+              - /system/chassis/motherboard/dimm20
+              - /system/chassis/motherboard/dimm21
+              - /system/chassis/motherboard/dimm22
+              - /system/chassis/motherboard/dimm23
+              - /system/chassis/motherboard/dimm24
+    - name: Remove all cpu and dimm objects at host off
+      description: >
+          Remove all cpu and dimm objects at host off
+      type: match
+      signatures:
+          - type: signal
+            interface: org.freedesktop.DBus.Properties
+            path: /xyz/openbmc_project/state/host0
+            member: PropertiesChanged
+      filters:
+          - name: propertyChangedTo
+            interface: xyz.openbmc_project.State.Host
+            property: CurrentHostState
+            value:
+              value: xyz.openbmc_project.State.Host.HostState.Off
+              type: string
+      actions:
+          - name: destroyObjects
+            paths:
+              - /system/chassis/motherboard/cpu1
+              - /system/chassis/motherboard/cpu2
+              - /system/chassis/motherboard/dimm1
+              - /system/chassis/motherboard/dimm2
+              - /system/chassis/motherboard/dimm3
+              - /system/chassis/motherboard/dimm4
+              - /system/chassis/motherboard/dimm5
+              - /system/chassis/motherboard/dimm6
+              - /system/chassis/motherboard/dimm7
+              - /system/chassis/motherboard/dimm8
+              - /system/chassis/motherboard/dimm9
+              - /system/chassis/motherboard/dimm10
+              - /system/chassis/motherboard/dimm11
+              - /system/chassis/motherboard/dimm12
+              - /system/chassis/motherboard/dimm13
+              - /system/chassis/motherboard/dimm14
+              - /system/chassis/motherboard/dimm15
+              - /system/chassis/motherboard/dimm16
+              - /system/chassis/motherboard/dimm17
+              - /system/chassis/motherboard/dimm18
+              - /system/chassis/motherboard/dimm19
+              - /system/chassis/motherboard/dimm20
+              - /system/chassis/motherboard/dimm21
+              - /system/chassis/motherboard/dimm22
+              - /system/chassis/motherboard/dimm23
+              - /system/chassis/motherboard/dimm24

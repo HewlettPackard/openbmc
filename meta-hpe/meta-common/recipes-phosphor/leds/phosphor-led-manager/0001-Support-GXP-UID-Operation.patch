@@ -1,0 +1,88 @@
+From 4403d16dda9c5f1672e4e3a62a85199a795b6bc5 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Fri, 24 May 2019 22:59:29 +0800
+Subject: [PATCH] Support GXP UID Operation
+
+---
+ group.cpp | 53 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 53 insertions(+)
+
+diff --git a/group.cpp b/group.cpp
+index 0d4fa10..ac4569f 100644
+--- a/group.cpp
++++ b/group.cpp
+@@ -1,14 +1,64 @@
+ #include "group.hpp"
+ 
+ #include <sdbusplus/message.hpp>
++#include <fcntl.h>
++#include <unistd.h>
++#include <stdio.h>
++
++#define UID_SYS_FS "/sys/class/soc/xreg/"
++#define UID_MUX    "uid_mux"
++#define UID_BLINK  "uid_blink"
++#define UID_STATE  "uid_state"
++
++#define UID_ON          "0x03"
++#define UID_OFF         "0x02"
++#define UID_RESERV      "0x01"
++#define UID_NOT_IN_CTR  "0x00"
++
+ namespace phosphor
+ {
+ namespace led
+ {
+ 
++static bool driverUID(bool uid) {
++    int fd, uid_state, byte_read;
++    char buffer[64] = {0};
++
++    fd = open(UID_SYS_FS UID_MUX, O_RDWR);
++    if (fd == -1) {
++        printf("Cannot open UID Sys Fs. \n");
++        return false;
++    }
++
++    // Get Current UID state
++    byte_read = read(fd, buffer, sizeof(buffer));
++    if (byte_read) {
++      sscanf(buffer, "0x%x,%*s", &uid_state);
++      uid_state = (uid_state == 0x03 ? 1 : 0);
++    } else {
++      printf("Cannot read UID state. \n");
++      return false;
++    }
++
++    // Set Current UID State
++    if (uid == uid_state) {
++      printf("UID is in desired state. \n");
++    } else {
++      if (uid) {
++        write(fd, UID_ON, sizeof(UID_ON));
++      } else {
++        write(fd, UID_NOT_IN_CTR, sizeof(UID_NOT_IN_CTR));
++      }
++    }
++
++    // Return the result
++    return uid;
++}
++
+ /** @brief Overloaded Property Setter function */
+ bool Group::asserted(bool value)
+ {
++/*
+     // Introducing these to enable gtest.
+     Manager::group ledsAssert{};
+     Manager::group ledsDeAssert{};
+@@ -21,6 +71,9 @@ bool Group::asserted(bool value)
+     // If something does not go right here, then there should be an sdbusplus
+     // exception thrown.
+     manager.driveLEDs(ledsAssert, ledsDeAssert);
++*/
++    // Turn on UID
++    auto result = driverUID(value);
+ 
+     // Set the base class's asserted to 'true' since the getter
+     // operation is handled there.

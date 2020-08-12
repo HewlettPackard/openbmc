@@ -1,0 +1,89 @@
+From 244be5effe469e3cbe9798ae0b0c0babf6c27289 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 18:55:53 +0000
+Subject: [PATCH]  add obmc-flash-bios script
+
+---
+ meson.build                      |  5 +++++
+ obmc-flash-bios                  | 43 ++++++++++++++++++++++++++++++++
+ obmc-flash-host-bios@.service.in |  3 ++-
+ 3 files changed, 50 insertions(+), 1 deletion(-)
+ create mode 100644 obmc-flash-bios
+
+diff --git a/meson.build b/meson.build
+index c74a927..96748fb 100644
+--- a/meson.build
++++ b/meson.build
+@@ -211,6 +211,11 @@ install_data('obmc-flash-bmc',
+     install_dir: get_option('bindir')
+ )
+ 
++install_data('obmc-flash-bios',
++    install_mode: 'rwxr-xr-x',
++    install_dir: get_option('bindir')
++)
++
+ install_data('software.conf',
+     install_dir: '/usr/lib/tmpfiles.d/'
+ )
+diff --git a/obmc-flash-bios b/obmc-flash-bios
+new file mode 100644
+index 0000000..029235c
+--- /dev/null
++++ b/obmc-flash-bios
+@@ -0,0 +1,43 @@
++#!/bin/bash
++set -eo pipefail
++
++# Get the mtd device number (mtdX)
++findmtd() {
++  m="$(grep -xl "$1" /sys/class/mtd/*/name)"
++  m="${m%/name}"
++  m="${m##*/}"
++  echo "${m}"
++}
++
++mtd_write() {
++  flashmtd="$(findmtd "${reqmtd}")"
++  img="/tmp/images/${version}/${imgfile}"
++  flashcp -v ${img} /dev/${flashmtd}
++}
++
++case "$1" in
++  srom)
++    reqmtd="host-prime"
++    imgfile="$2"
++    version="$3"
++    mtd_write
++    reqmtd="host-second"
++    imgfile="$2"
++    version="$3"
++    mtd_write
++    ;;
++  vrom)
++    reqmtd="vrom-prime"
++    imgfile="$2"
++    version="$3"
++    mtd_write
++    reqmtd="vrom-second"
++    imgfile="$2"
++    version="$3"
++    mtd_write
++    ;;
++  *)
++    echo "Invalid argument"
++    exit 1
++    ;;
++esac
+diff --git a/obmc-flash-host-bios@.service.in b/obmc-flash-host-bios@.service.in
+index da8e4db..a59680c 100644
+--- a/obmc-flash-host-bios@.service.in
++++ b/obmc-flash-host-bios@.service.in
+@@ -4,4 +4,5 @@ Description=Flash Host Bios image %I to Host
+ [Service]
+ Type=oneshot
+ RemainAfterExit=no
+-ExecStart=flashcp -v /tmp/images/%I/ImageHost.pnor /dev/mtd7
++ExecStart=obmc-flash-bios srom ImageHost.pnor %i
++ExecStart=obmc-flash-bios vrom ImageHost.pnor %i
+\ No newline at end of file

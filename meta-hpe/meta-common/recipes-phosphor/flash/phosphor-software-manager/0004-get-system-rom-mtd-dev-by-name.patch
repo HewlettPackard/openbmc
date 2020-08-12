@@ -1,0 +1,178 @@
+From 2a7f85ccfc36e40913f1dac4dd046386997cb11b Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 19:07:05 +0000
+Subject: [PATCH] get system rom mtd dev by name
+
+---
+ utils.cpp | 147 ++++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 92 insertions(+), 55 deletions(-)
+
+diff --git a/utils.cpp b/utils.cpp
+index 7c114b8..7d746d5 100644
+--- a/utils.cpp
++++ b/utils.cpp
+@@ -12,72 +12,109 @@ using namespace phosphor::logging;
+ inline
+ size_t offset(const char* buf, size_t len, const char* str)
+ {
+-  return std::search(buf, buf + len, str, str + strlen(str)) - buf;
++    return std::search(buf, buf + len, str, str + strlen(str)) - buf;
+ }
+ 
+-int parseVersion(std::string& property, std::string& version) {
+-  std::size_t pos;
+-  std::map<int, std::string> hostPropertyData;
+-  std::string line;
+-  std::stringstream input(property);
+-  char buf[255] = {0};
+-
+-  std::getline(input, line); // Get magic word
+-  for(int i = 0; i < TOTAL; i++)
+-  {
+-    std::getline(input, line);
+-    pos = line.find(_hostPropertyMap.at(i));
+-
+-    if (pos != std::string::npos) {
+-      hostPropertyData[i] = line.substr(_hostPropertyMap.at(i).size());
+-      hostPropertyData[i].erase(hostPropertyData[i].end()-1, hostPropertyData[i].end()); // Remove the last null
+-    } else {
+-      log<level::ERR>("Host information incorrect!");
+-      return 0;
++std::string getMtdDev(std::string name)
++{
++    std::ifstream infile("/proc/mtd");
++    std::string match = "\"" + name + "\"";
++
++    if (infile)
++    {
++        std::string line;
++        while (std::getline(infile, line))
++        {
++            std::istringstream iss(line);
++            std::string f1,f2,f3,f4;
++            if (!(iss >> f1 >> f2 >> f3 >> f4)) { break; } // error
++            if (f4 == match)
++            {
++                f1.pop_back();
++                return f1;
++            }
++        }
++    }
++    return "";
++}
++
++int parseVersion(std::string& property, std::string& version)
++{
++    std::size_t pos;
++    std::map<int, std::string> hostPropertyData;
++    std::string line;
++    std::stringstream input(property);
++    char buf[255] = {0};
++
++    std::getline(input, line); // Get magic word
++    for(int i = 0; i < TOTAL; i++)
++    {
++        std::getline(input, line);
++        pos = line.find(_hostPropertyMap.at(i));
++
++        if (pos != std::string::npos)
++        {
++            hostPropertyData[i] = line.substr(_hostPropertyMap.at(i).size());
++            hostPropertyData[i].erase(hostPropertyData[i].end()-1, hostPropertyData[i].end()); // Remove the last null
++        }
++        else
++        {
++            log<level::ERR>("Host information incorrect!");
++            return 0;
++        }
+     }
+-  }
+ 
+-  // Compose Host Version Information
+-  snprintf(buf, 255, "%s v%s.%s (%s/%s/%s)",
+-          hostPropertyData[FAMILY].data(), hostPropertyData[MAJOR].data(),
+-          hostPropertyData[MINOR].data(), hostPropertyData[DAY].data(),
+-          hostPropertyData[MONTH].data(), hostPropertyData[YEAR].data());
+-  version = buf;
++    // Compose Host Version Information
++    snprintf(buf, 255, "%s v%s.%s (%s/%s/%s)",
++            hostPropertyData[FAMILY].data(), hostPropertyData[MAJOR].data(),
++            hostPropertyData[MINOR].data(), hostPropertyData[DAY].data(),
++            hostPropertyData[MONTH].data(), hostPropertyData[YEAR].data());
++    version = buf;
+ 
+-  return 1;
++    return 1;
+ }
+ 
+-std::string getHostVersion() {
+-  std::ifstream efile;
+-  std::string property;
+-  std::string version("unknown-0\nProduct-unknown-0");
+-  char buffer[BUF_SIZE];
+-
+-  try
+-  {
+-    efile.open(HOST_MTD);
+-    efile.seekg(PROPERTY_OFFSET, std::ios::beg);
+-    efile.read(buffer, BUF_SIZE);
+-    efile.close();
+-  }
+-  catch (const std::exception& e)
+-  {
+-    if (!efile.eof())
++std::string getHostVersion()
++{
++    std::ifstream efile;
++    std::string property;
++    std::string version("unknown-0\nProduct-unknown-0");
++    char buffer[BUF_SIZE];
++
++    std::string mtddev = getMtdDev("host-second");
++    if (mtddev == "")
++    {
++        return version;
++    }
++    mtddev = "/dev/" + mtddev;
++
++    try
+     {
+-      log<level::ERR>("Error in reading host information");
++        efile.open(mtddev);
++        efile.seekg(PROPERTY_OFFSET, std::ios::beg);
++        efile.read(buffer, BUF_SIZE);
++        efile.close();
+     }
+-    efile.close();
+-  }
+-
+-  size_t propOffset = offset(buffer, BUF_SIZE, MAGIC_WORD);
+-  if (propOffset != BUF_SIZE) { // Found magic word
+-    std::string property(buffer+propOffset);
+-    if (!parseVersion(property, version)) {
+-      version = "unknown-0\nProduct-unknown-0";
++    catch (const std::exception& e)
++    {
++        if (!efile.eof())
++        {
++            log<level::ERR>("Error in reading host information");
++        }
++        efile.close();
++    }
++
++    size_t propOffset = offset(buffer, BUF_SIZE, MAGIC_WORD);
++    if (propOffset != BUF_SIZE)
++    { // Found magic word
++        std::string property(buffer+propOffset);
++        if (!parseVersion(property, version))
++        {
++            version = "unknown-0\nProduct-unknown-0";
++        }
+     }
+-  }
+ 
+-  return version;
++    return version;
+ }
+ 
+ std::string getService(sdbusplus::bus::bus& bus, const std::string& path,

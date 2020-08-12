@@ -1,0 +1,93 @@
+From c4bf283e3558cb6424dabbd779c149c85dd53885 Mon Sep 17 00:00:00 2001
+From: Louis Hsu <kai-hsiang.hsu@hpe.com>
+Date: Tue, 18 Feb 2020 19:57:07 +0800
+Subject: [PATCH] Change return value to -ENXIO if unavailable
+
+---
+ src/IpmbSensor.cpp | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/src/IpmbSensor.cpp b/src/IpmbSensor.cpp
+index beef02d..cf80aa9 100755
+--- a/src/IpmbSensor.cpp
++++ b/src/IpmbSensor.cpp
+@@ -550,14 +550,14 @@ void IpmbSensor::read(void)
+         if (!isPowerOn() && readState == PowerState::on)
+         {
+             isPreviousPowerStateOff = true;
+-            updateValue(0);
++            updateValue(-ENXIO);
+             read();
+             return;
+         }
+         // do delay awhile after power on
+         if(powerOnDelay())
+         {
+-            updateValue(0);
++            updateValue(-ENXIO);
+             read();
+             return;
+         }
+@@ -659,7 +659,7 @@ void IpmbSensor::read(void)
+             // clear present flag while host off
+             present = false;
+             isPreviousPowerStateOff = true;
+-            updateValue(0);
++            updateValue(-ENXIO);
+             read();
+             return;
+         }
+@@ -671,7 +671,7 @@ void IpmbSensor::read(void)
+             {
+                 // clear present flag while power on delay
+                 present = false;
+-                updateValue(0);
++                updateValue(-ENXIO);
+                 read();
+                 return;
+             }
+@@ -684,7 +684,7 @@ void IpmbSensor::read(void)
+                 if (ec || status)
+                 {
+                     processError();
+-                    updateValue(0);
++                    updateValue(-ENXIO);
+                     read();
+                     return;
+                 }
+@@ -693,7 +693,7 @@ void IpmbSensor::read(void)
+                     // clear present flag while host off
+                     present = false;
+                     isPreviousPowerStateOff = true;
+-                    updateValue(0);
++                    updateValue(-ENXIO);
+                     read();
+                     return;
+                 }
+@@ -786,7 +786,7 @@ void IpmbSensor::read(void)
+                     (cpu_dts == nmDataUnavailable) ||
+                     (cpu_dts == nmReserved))
+                     {
+-                        value = 0;
++                        value = -ENXIO;
+                     }
+                     else
+                     {
+@@ -823,7 +823,7 @@ void IpmbSensor::read(void)
+                         (value == nmDataUnavailable) ||
+                         (value == nmReserved))
+                         {
+-                            value = 0;
++                            value = -ENXIO;
+                         }
+                     }
+                     else
+@@ -858,7 +858,7 @@ void IpmbSensor::read(void)
+                         (value == nmDataUnavailable) ||
+                         (value == nmReserved))
+                         {
+-                            value = 0;
++                            value = -ENXIO;
+                         }
+                     }
+                     else

@@ -1,0 +1,105 @@
+From fde4cea1cc358efd54cbcf556c0af0ba17a5e86b Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Mon, 27 Jul 2020 19:49:49 +0800
+Subject: [PATCH] Implement press_power_button function
+
+---
+ op-pwrctl/power_control_obj.c | 72 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 71 insertions(+), 1 deletion(-)
+
+diff --git a/op-pwrctl/power_control_obj.c b/op-pwrctl/power_control_obj.c
+index 66f4cd7..7e23edd 100644
+--- a/op-pwrctl/power_control_obj.c
++++ b/op-pwrctl/power_control_obj.c
+@@ -296,13 +296,78 @@ on_boot_progress(GDBusConnection *connection,
+ 	g_pci_reset_held = 0;
+ }
+ 
++static gboolean
++on_press_power_button(ControlPower *pwr,
++		GDBusMethodInvocation *invocation,
++		guint millisecond,
++		gpointer user_data)
++{
++	PowerGpio *power_gpio = &g_gpio_configs.power_gpio;
++
++	if (millisecond > 5000 || millisecond < 0) {
++		g_dbus_method_invocation_return_dbus_error(invocation,
++				"org.openbmc.ControlPower.Error.Failed",
++				"Invalid millisecond parameter");
++		return TRUE;
++	}
++
++	// retrun from method call
++	control_power_complete_press_power_button(pwr, invocation);
++
++	int error = 0;
++	do {
++		int i;
++		uint8_t power_up_out;
++		for (i = 0; i < power_gpio->num_power_up_outs; i++) {
++			GPIO *power_pin = &power_gpio->power_up_outs[i];
++			error = gpio_open(power_pin, power_up_out);
++			if(error != GPIO_OK) {
++				gpio_close(power_pin);
++				g_print("ERROR PowerControl: GPIO open error (gpio=%s,rc=%d)\n",
++						power_gpio->power_up_outs[i].name, error);
++				continue;
++			}
++
++			g_print("PowerControl: Press power button on %s.\n",
++					power_gpio->power_up_outs[i].name, (int)power_up_out);
++			power_up_out = 1 ^ !power_gpio->power_up_pols[i];
++			error = gpio_write(power_pin, power_up_out);
++			if(error != GPIO_OK) {
++				gpio_close(power_pin);
++				continue;
++			}
++
++			// Delay specific time
++			usleep(millisecond * 1000);
++
++			g_print("PowerControl: Release power button on %s.\n",
++					power_gpio->power_up_outs[i].name, (int)power_up_out);
++			power_up_out = 0 ^ !power_gpio->power_up_pols[i];
++			error = gpio_write(power_pin, power_up_out);
++			if(error != GPIO_OK) {
++				gpio_close(power_pin);
++				continue;
++			}
++
++			gpio_close(power_pin);
++		}
++		if(error != GPIO_OK) { break;	}
++	} while(0);
++
++	if(error != GPIO_OK)
++	{
++		g_print("ERROR PowerControl: GPIO set power state (rc=%d)\n",error);
++	}
++
++	return TRUE;
++}
++
+ static gboolean
+ on_set_power_state(ControlPower *pwr,
+ 		GDBusMethodInvocation *invocation,
+ 		guint state,
+ 		gpointer user_data)
+ {
+-	Control* control = object_get_control((Object*)user_data);
+ 	PowerGpio *power_gpio = &g_gpio_configs.power_gpio;
+ 	if(state > 1)
+ 	{
+@@ -509,6 +574,11 @@ on_bus_acquired(GDBusConnection *connection,
+ 			G_CALLBACK(on_get_power_state),
+ 			NULL); /* user_data */
+ 
++	g_signal_connect(control_power,
++			"handle-press-power-button",
++			G_CALLBACK(on_press_power_button),
++			NULL); /* user_data */
++
+ 	g_signal_connect(control,
+ 			"handle-init",
+ 			G_CALLBACK(on_init),

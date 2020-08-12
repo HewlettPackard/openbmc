@@ -1,0 +1,28 @@
+From cae7e7e07a23b08b4dc4517e8297d61d60c7b36e Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Wed, 30 Oct 2019 18:50:48 +0800
+Subject: [PATCH] Tweak sensor list pages
+
+1. Fix NaN value for unpopulated values
+2. Display N/A for unpopulated sensors
+---
+ app/server-health/controllers/sensors-overview-controller.html | 6 +++---
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/app/server-health/controllers/sensors-overview-controller.html b/app/server-health/controllers/sensors-overview-controller.html
+index 8669c33..2a35bfc 100644
+--- a/app/server-health/controllers/sensors-overview-controller.html
++++ b/app/server-health/controllers/sensors-overview-controller.html
+@@ -77,9 +77,9 @@
+         <td class="sensors__tbody-cell sensors__tbody-current" ng-class="{'sensors__tbody-current--critical': sensor.status == 'critical', 'sensors__tbody-current--warn': sensor.status == 'warning', 'sensors__tbody-current--normal': sensor.status == 'normal'}">
+           <span class="sensors__tbody-cell__title">Current</span>
+           <span class="sensors__tbody-cell__content">
+-              <span class="sensors__tbody-info">{{sensor.Value}}</span>
+-              <span class="sensors__tbody-degree" ng-if="sensor.unit == 'C'">&deg;</span>
+-            <span class="sensors__tbody-unit">{{sensor.unit}}</span>
++            <span class="sensors__tbody-info">{{sensor.Value >= 0 ? sensor.Value : "N/A"}}</span>
++              <span class="sensors__tbody-degree" ng-if="sensor.unit == 'C' && sensor.Value >= 0">&deg;</span>
++              <span class="sensors__tbody-unit" ng-if="sensor.Value >= 0">{{sensor.unit}}</span>
+           </span>
+         </td>
+         <td class="sensors__tbody-cell">

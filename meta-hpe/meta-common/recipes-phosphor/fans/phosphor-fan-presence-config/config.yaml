@@ -1,0 +1,59 @@
+- name: fan1
+  path: /system/chassis/motherboard/fan1
+  methods:
+    - type: gpio
+      key: 200
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof
+
+- name: fan2
+  path: /system/chassis/motherboard/fan2
+  methods:
+    - type: gpio
+      key: 201
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof
+
+- name: fan3
+  path: /system/chassis/motherboard/fan3
+  methods:
+    - type: gpio
+      key: 202
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof
+
+- name: fan4
+  path: /system/chassis/motherboard/fan4
+  methods:
+    - type: gpio
+      key: 203
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof
+
+- name: fan5
+  path: /system/chassis/motherboard/fan5
+  methods:
+    - type: gpio
+      key: 204
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof
+
+- name: fan6
+  path: /system/chassis/motherboard/fan6
+  methods:
+    - type: gpio
+      key: 205
+      physpath: /sys/devices/platform/ahb@80000000/ahb@80000000:presence
+      devpath: /dev/input/by-path/platform-ahb@80000000:presence-event
+  rpolicy:
+    type: anyof

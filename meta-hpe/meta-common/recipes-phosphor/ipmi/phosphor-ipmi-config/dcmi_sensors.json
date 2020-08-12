@@ -1,0 +1,19 @@
+{
+    "inlet": [
+        {"instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/ambient1", "record_id": 37},
+        {"instance": 2, "dbus": "/xyz/openbmc_project/sensors/temperature/ambient2", "record_id": 38}
+    ],
+    "baseboard": [
+        {"instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/coretemp", "record_id": 36},
+        {"instance": 2, "dbus": "/xyz/openbmc_project/sensors/temperature/BMC_Zone", "record_id": 39},
+        {"instance": 3, "dbus": "/xyz/openbmc_project/sensors/temperature/Battery_Zone", "record_id": 40},
+        {"instance": 4, "dbus": "/xyz/openbmc_project/sensors/temperature/IO_Zone", "record_id": 41},
+        {"instance": 5, "dbus": "/xyz/openbmc_project/sensors/temperature/PS_Zone", "record_id": 42} 
+    ],
+    "cpu": [
+        {"instance": 1, "dbus": "/xyz/openbmc_project/sensors/temperature/CPU1_Temp", "record_id": 47},
+        {"instance": 2, "dbus": "/xyz/openbmc_project/sensors/temperature/CPU1_DTS", "record_id": 49},
+        {"instance": 3, "dbus": "/xyz/openbmc_project/sensors/temperature/CPU2_Temp", "record_id": 48},
+        {"instance": 4, "dbus": "/xyz/openbmc_project/sensors/temperature/CPU2_DTS", "record_id": 50}
+    ]
+}

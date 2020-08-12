@@ -1,0 +1,314 @@
+From ed389d91cdf51db2a243f76df0840dc90eff1521 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Fri, 10 Jan 2020 02:07:20 +0800
+Subject: [PATCH] DEV: Support GXP video
+
+---
+ create_usbhid.sh    | 14 +------
+ ikvm_manager.cpp    | 10 -----
+ ikvm_server.cpp     | 28 +------------
+ ikvm_video.cpp      | 95 +++++++++------------------------------------
+ ikvm_video.hpp      | 12 +++++-
+ start-ipkvm.service |  2 +-
+ 6 files changed, 34 insertions(+), 127 deletions(-)
+
+diff --git a/create_usbhid.sh b/create_usbhid.sh
+index 6562991..2e83957 100644
+--- a/create_usbhid.sh
++++ b/create_usbhid.sh
+@@ -119,17 +119,7 @@ ln -s functions/hid.0 configs/c.1
+ ln -s functions/hid.1 configs/c.1
+ 
+ # Enable gadget
+-dev_name="1e6a0000.usb-vhub"
+-i=0
+-num_ports=5
+-base_usb_dir="/sys/bus/platform/devices/${dev_name}/${dev_name}:p"
+-while [ $i -lt $num_ports ]; do
+-	port=$(($i + 1))
+-	i=$port
+-	if [ ! -e "${base_usb_dir}${port}/gadget/suspended" ]; then
+-		break
+-	fi
+-done
+-echo "${dev_name}:p${port}" > UDC
++dev_name="80401000.udc"
++echo "${dev_name}" > UDC
+ 
+ cd "${original_directory}"
+diff --git a/ikvm_manager.cpp b/ikvm_manager.cpp
+index d56110d..afb59c6 100644
+--- a/ikvm_manager.cpp
++++ b/ikvm_manager.cpp
+@@ -22,7 +22,6 @@ void Manager::run()
+         if (server.wantsFrame())
+         {
+             video.start();
+-            video.getFrame();
+             server.sendFrame();
+         }
+         else
+@@ -30,15 +29,6 @@ void Manager::run()
+             video.stop();
+         }
+ 
+-        if (video.needsResize())
+-        {
+-            videoDone = false;
+-            waitServer();
+-            video.resize();
+-            server.resize();
+-            setVideoDone();
+-        }
+-        else
+         {
+             setVideoDone();
+             waitServer();
+diff --git a/ikvm_server.cpp b/ikvm_server.cpp
+index ebeaef0..84f89af 100644
+--- a/ikvm_server.cpp
++++ b/ikvm_server.cpp
+@@ -106,7 +106,6 @@ void Server::sendFrame()
+     while ((cl = rfbClientIteratorNext(it)))
+     {
+         ClientData* cd = (ClientData*)cl->clientData;
+-        rfbFramebufferUpdateMsg* fu = (rfbFramebufferUpdateMsg*)cl->updateBuf;
+ 
+         if (!cd)
+         {
+@@ -125,31 +124,8 @@ void Server::sendFrame()
+         }
+         cd->needUpdate = false;
+ 
+-        if (cl->enableLastRectEncoding)
+-        {
+-            fu->nRects = 0xFFFF;
+-        }
+-        else
+-        {
+-            fu->nRects = Swap16IfLE(1);
+-        }
+-
+-        fu->type = rfbFramebufferUpdate;
+-        cl->ublen = sz_rfbFramebufferUpdateMsg;
+-        rfbSendUpdateBuf(cl);
+-
+-        cl->tightEncoding = rfbEncodingTight;
+-        rfbSendTightHeader(cl, 0, 0, video.getWidth(), video.getHeight());
+-
+-        cl->updateBuf[cl->ublen++] = (char)(rfbTightJpeg << 4);
+-        rfbSendCompressedDataTight(cl, data, video.getFrameSize());
+-
+-        if (cl->enableLastRectEncoding)
+-        {
+-            rfbSendLastRectMarker(cl);
+-        }
+-
+-        rfbSendUpdateBuf(cl);
++        server->frameBuffer = data;
++        rfbMarkRectAsModified(server, 0, 0, video.getHeight(), video.getWidth());
+     }
+ 
+     rfbReleaseClientIterator(it);
+diff --git a/ikvm_video.cpp b/ikvm_video.cpp
+index 6a5aa6c..5ff15a0 100644
+--- a/ikvm_video.cpp
++++ b/ikvm_video.cpp
+@@ -34,6 +34,7 @@ Video::Video(const std::string& p, Input& input, int fr) :
+     resizeAfterOpen(false), timingsError(false), fd(-1), frameRate(fr),
+     lastFrameIndex(-1), height(600), width(800), input(input), path(p)
+ {
++    fbmmap = NULL;
+ }
+ 
+ Video::~Video()
+@@ -43,12 +44,7 @@ Video::~Video()
+ 
+ char* Video::getData()
+ {
+-    if (lastFrameIndex >= 0)
+-    {
+-        return (char*)buffers[lastFrameIndex].data;
+-    }
+-
+-    return nullptr;
++    return fbmmap? fbmmap : nullptr;
+ }
+ 
+ void Video::getFrame()
+@@ -388,9 +384,9 @@ void Video::start()
+         return;
+     }
+ 
+-    input.sendWakeupPacket();
++    //input.sendWakeupPacket();
+ 
+-    fd = open(path.c_str(), O_RDWR);
++    fd = open(path.c_str(), O_RDONLY);
+     if (fd < 0)
+     {
+         log<level::ERR>("Failed to open video device",
+@@ -401,92 +397,37 @@ void Video::start()
+             xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+     }
+ 
+-    memset(&cap, 0, sizeof(v4l2_capability));
+-    rc = ioctl(fd, VIDIOC_QUERYCAP, &cap);
+-    if (rc < 0)
++    if (ioctl(fd, FBIOGET_VSCREENINFO, &scrinfo) != 0)
+     {
+-        log<level::ERR>("Failed to query video device capabilities",
+-                        entry("ERROR=%s", strerror(errno)));
+-        elog<ReadFailure>(
+-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
+-                errno),
+-            xyz::openbmc_project::Common::Device::ReadFailure::
+-                CALLOUT_DEVICE_PATH(path.c_str()));
++        log<level::ERR>("Failed to ioctl video device");
+     }
+ 
+-    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) ||
+-        !(cap.capabilities & V4L2_CAP_STREAMING))
++    height = scrinfo.xres;
++    width = scrinfo.yres;
++
++    fbmmap = (char *)mmap(NULL, height * width * bytesPerPixel, 
++                  PROT_READ, MAP_SHARED, fd, 0);
++
++    if (fbmmap == MAP_FAILED)
+     {
+-        log<level::ERR>("Video device doesn't support this application");
++        log<level::ERR>("Failed to mmap",
++                        entry("PATH=%s", path.c_str()),
++                        entry("ERROR=%s", strerror(errno)));
+         elog<Open>(
+             xyz::openbmc_project::Common::File::Open::ERRNO(errno),
+             xyz::openbmc_project::Common::File::Open::PATH(path.c_str()));
+     }
+-
+-    memset(&fmt, 0, sizeof(v4l2_format));
+-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+-    rc = ioctl(fd, VIDIOC_G_FMT, &fmt);
+-    if (rc < 0)
+-    {
+-        log<level::ERR>("Failed to query video device format",
+-                        entry("ERROR=%s", strerror(errno)));
+-        elog<ReadFailure>(
+-            xyz::openbmc_project::Common::Device::ReadFailure::CALLOUT_ERRNO(
+-                errno),
+-            xyz::openbmc_project::Common::Device::ReadFailure::
+-                CALLOUT_DEVICE_PATH(path.c_str()));
+-    }
+-
+-    memset(&sparm, 0, sizeof(v4l2_streamparm));
+-    sparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+-    sparm.parm.capture.timeperframe.numerator = 1;
+-    sparm.parm.capture.timeperframe.denominator = frameRate;
+-    rc = ioctl(fd, VIDIOC_S_PARM, &sparm);
+-    if (rc < 0)
+-    {
+-        log<level::WARNING>("Failed to set video device frame rate",
+-                            entry("ERROR=%s", strerror(errno)));
+-    }
+-
+-    height = fmt.fmt.pix.height;
+-    width = fmt.fmt.pix.width;
+-
+-    resize();
+-
+-    if (oldHeight != height || oldWidth != width)
+-    {
+-        resizeAfterOpen = true;
+-    }
+ }
+ 
+ void Video::stop()
+ {
+-    int rc;
+-    unsigned int i;
+-    v4l2_buf_type type(V4L2_BUF_TYPE_VIDEO_CAPTURE);
+-
+     if (fd < 0)
+     {
+         return;
+     }
+ 
+-    lastFrameIndex = -1;
+-
+-    rc = ioctl(fd, VIDIOC_STREAMOFF, &type);
+-    if (rc)
+-    {
+-        log<level::ERR>("Failed to stop streaming",
+-                        entry("ERROR=%s", strerror(errno)));
+-    }
+-
+-    for (i = 0; i < buffers.size(); ++i)
+-    {
+-        if (buffers[i].data)
+-        {
+-            munmap(buffers[i].data, buffers[i].size);
+-            buffers[i].data = nullptr;
+-            buffers[i].queued = false;
+-        }
++    if (fbmmap) {
++        munmap(fbmmap, height * width * bytesPerPixel);
+     }
+ 
+     close(fd);
+diff --git a/ikvm_video.hpp b/ikvm_video.hpp
+index fb8c5da..56321d5 100644
+--- a/ikvm_video.hpp
++++ b/ikvm_video.hpp
+@@ -6,6 +6,8 @@
+ #include <string>
+ #include <vector>
+ 
++#include <linux/fb.h>
++
+ namespace ikvm
+ {
+ 
+@@ -73,7 +75,7 @@ class Video
+      */
+     inline size_t getFrameSize() const
+     {
+-        return buffers[lastFrameIndex].payload;
++        return width * height * bytesPerPixel;
+     }
+     /*
+      * @brief Gets the height of the video frame
+@@ -94,6 +96,10 @@ class Video
+         return width;
+     }
+ 
++    inline fb_var_screeninfo getScreenInfo() {
++        return scrinfo;
++    }
++
+     /* @brief Number of bits per component of a pixel */
+     static const int bitsPerSample;
+     /* @brief Number of bytes of storage for a pixel */
+@@ -147,6 +153,10 @@ class Video
+     const std::string path;
+     /* @brief Streaming buffer storage */
+     std::vector<Buffer> buffers;
++    /* @brief Screen info storage */
++    fb_var_screeninfo scrinfo;
++    /* @brief Frame buffer storage */
++    char *fbmmap;
+ };
+ 
+ } // namespace ikvm
+diff --git a/start-ipkvm.service b/start-ipkvm.service
+index 5f945b3..225af51 100644
+--- a/start-ipkvm.service
++++ b/start-ipkvm.service
+@@ -5,7 +5,7 @@ ConditionPathIsMountPoint=/sys/kernel/config
+ [Service]
+ Restart=always
+ ExecStartPre=/usr/bin/create_usbhid.sh
+-ExecStart=/usr/bin/obmc-ikvm -v /dev/video0 -k /dev/hidg0 -p /dev/hidg1
++ExecStart=/usr/bin/obmc-ikvm -v /dev/fb0 -k /dev/hidg0 -p /dev/hidg1
+ 
+ [Install]
+ WantedBy=multi-user.target

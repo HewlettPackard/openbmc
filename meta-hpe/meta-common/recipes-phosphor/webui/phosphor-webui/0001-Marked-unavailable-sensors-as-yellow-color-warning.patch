@@ -1,0 +1,26 @@
+From d7b67f3bb8997c45f69fe40eee0c2dcdfbe8dea6 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Wed, 12 Feb 2020 16:07:07 +0800
+Subject: [PATCH] Marked unavailable sensors as yellow color (warning)
+
+---
+ app/common/services/api-utils.js | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/app/common/services/api-utils.js b/app/common/services/api-utils.js
+index 74e7aac..197cb1e 100644
+--- a/app/common/services/api-utils.js
++++ b/app/common/services/api-utils.js
+@@ -940,7 +940,11 @@ window.angular && (function(angular) {
+                       },
+                           severityText = '', order = 0;
+ 
+-                      if (reading.hasOwnProperty('CriticalLow') &&
++                      if (reading.Value < 0) {
++                        severityFlags.warning = true;
++                        severityText = 'warning';
++                        order = 1;
++                      } else if (reading.hasOwnProperty('CriticalLow') &&
+                           reading.Value < reading.CriticalLow) {
+                         severityFlags.critical = true;
+                         severityText = 'critical';

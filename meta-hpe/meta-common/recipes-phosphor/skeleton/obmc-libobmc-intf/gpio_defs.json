@@ -1,0 +1,34 @@
+{
+    "gpio_configs": {
+
+        "power_config": {
+            "power_good_in": "PGOOD",
+            "power_up_outs": [
+                {"name": "POWER_PIN", "polarity": true}
+            ]
+        }
+    },
+
+    "gpio_definitions": [
+        {
+            "name": "POWER_PIN",
+            "num": 200,
+            "direction": "out"
+        },
+        {
+            "name": "PGOOD",
+            "num": 201,
+            "direction": "in"
+        },
+        {
+            "name": "POWER_BUTTON",
+            "num": 359,
+            "direction": "both"
+        },
+        {
+            "name": "ID_BTN",
+            "num": 360,
+            "direction": "both"
+        }
+    ]
+}

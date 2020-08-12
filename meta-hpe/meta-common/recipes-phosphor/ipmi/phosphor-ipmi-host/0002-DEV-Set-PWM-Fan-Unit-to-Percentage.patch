@@ -1,0 +1,24 @@
+From a7dfd2b8cbd6655320386f2b57dc9ce20783eb7e Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Fri, 30 Aug 2019 01:40:15 +0800
+Subject: [PATCH] DEV: Set PWM Fan Unit to Percentage
+
+---
+ sensorhandler.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sensorhandler.cpp b/sensorhandler.cpp
+index d2fac66..91c96c5 100644
+--- a/sensorhandler.cpp
++++ b/sensorhandler.cpp
+@@ -681,6 +681,10 @@ void setUnitFieldsForObject(const ipmi::sensor::Info* info,
+             case server::Value::Unit::Watts:
+                 body->sensor_units_2_base = get_sdr::SENSOR_UNIT_WATTS;
+                 break;
++            case server::Value::Unit::Percentage:
++                body->sensor_units_2_base = get_sdr::SENSOR_UNIT_UNSPECIFIED;
++                body->sensor_units_1 |= 1 << 0; // Set Percentage
++                break;
+             default:
+                 // Cannot be hit.
+                 std::fprintf(stderr, "Unknown value unit type: = %s\n",

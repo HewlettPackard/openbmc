@@ -1,0 +1,11 @@
+[Unit]
+Description=VEHCI GXP B0 Workarround Service
+Wants=start-ipkvm.service
+After=start-ipkvm.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "udc-reconnect.sh %i"
+SyslogIdentifier=vehci-gxp-b0-workarround@%i
+

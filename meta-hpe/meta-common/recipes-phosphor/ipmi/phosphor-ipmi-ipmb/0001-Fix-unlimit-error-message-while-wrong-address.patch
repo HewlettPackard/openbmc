@@ -1,0 +1,44 @@
+From 8f5494d2d146e471a1f5d59289afc0ddddf361cc Mon Sep 17 00:00:00 2001
+From: Louis Hsu <kai-hsiang.hsu@hpe.com>
+Date: Wed, 2 Oct 2019 17:58:50 +0800
+Subject: [PATCH] Fix: unlimit error message while wrong address.
+
+---
+ ipmbbridged.cpp | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/ipmbbridged.cpp b/ipmbbridged.cpp
+index 22bc9c6..715b1cd 100644
+--- a/ipmbbridged.cpp
++++ b/ipmbbridged.cpp
+@@ -718,6 +718,7 @@ std::tuple<int, uint8_t, uint8_t, uint8_t, uint8_t, std::vector<uint8_t>>
+     IpmbChannel::requestAdd(boost::asio::yield_context &yield,
+                             std::shared_ptr<IpmbRequest> request)
+ {
++    static bool firstError = true; // don't print too much
+     makeRequestValid(request);
+ 
+     std::vector<uint8_t> buffer(0);
+@@ -748,12 +749,16 @@ std::tuple<int, uint8_t, uint8_t, uint8_t, uint8_t, std::vector<uint8_t>>
+ 
+         if (i2cRetryCnt == ipmbI2cNumberOfRetries)
+         {
+-            std::string msgToLog =
+-                "requestAdd: Sent to I2C failed after retries."
+-                " busId=" +
+-                std::to_string(ipmbBusId) + ", error=" + ec.message();
+-            phosphor::logging::log<phosphor::logging::level::INFO>(
+-                msgToLog.c_str());
++            if (firstError)
++            {
++                std::string msgToLog =
++                    "requestAdd: Sent to I2C failed after retries."
++                    " busId=" +
++                    std::to_string(ipmbBusId) + ", error=" + ec.message();
++                phosphor::logging::log<phosphor::logging::level::INFO>(
++                    msgToLog.c_str());
++                firstError = false;
++            }
+         }
+ 
+         request->timer->expires_after(

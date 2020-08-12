@@ -1,0 +1,39 @@
+From d134fc415222e1f2d85c4649c9836f0e1523a64a Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 6 Jul 2020 20:26:02 +0000
+Subject: [PATCH] DEV: Add Percentage type for PWM Fan (updated)
+
+---
+ xyz/openbmc_project/Sensor/Value.interface.yaml | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/xyz/openbmc_project/Sensor/Value.interface.yaml b/xyz/openbmc_project/Sensor/Value.interface.yaml
+index 91f356a..127d950 100644
+--- a/xyz/openbmc_project/Sensor/Value.interface.yaml
++++ b/xyz/openbmc_project/Sensor/Value.interface.yaml
+@@ -10,6 +10,7 @@ description: >
+       current
+       power
+       energy
++      fan_pwm
+       utilization
+ 
+     Any service implementing Sensor.Value on one or more objects must
+@@ -41,6 +42,7 @@ properties:
+           For objects in the current namespace, Unit must be "Amperes".
+           For objects in the power namespace, Unit must be "Watts".
+           For objects in the energy namespace, Unit must be "Joules".
++          For objects in the fan_pwm namespace, Unit must be "Percentage".
+           For objects in the utilization namespace, Unit must be "Percent"
+ 
+ enumerations:
+@@ -69,6 +71,9 @@ enumerations:
+         - name: Joules
+           description: >
+             Energy transfer as Joules.
++        - name: Percentage
++          description: >
++            Energy transfer as Percentage.
+         - name: Percent
+           description: >
+             Resource utilization as percentage.

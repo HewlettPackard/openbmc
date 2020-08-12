@@ -1,0 +1,117 @@
+events:
+    - name: Creating System Asset/Item/Revision at startup
+      description: >
+          Create /system at startup and populate the Asset/Item/Revision property with
+          default string.
+      type: startup
+      actions:
+          - name: createObjects
+            objs:
+             /system:
+                xyz.openbmc_project.Inventory.Item:
+                  PrettyName:
+                    value: ""
+                    type: string
+                  Present:
+                    value: true
+                    type: boolean
+                xyz.openbmc_project.Inventory.Decorator.Asset:
+                  Manufacturer:
+                    value: "Hewlett Packard Enterprise"
+                    type: string
+                  SerialNumber:
+                    value: ""
+                    type: string
+                  Model:
+                    value: ""
+                    type: string
+                xyz.openbmc_project.Inventory.Decorator.Revision:
+                  Version:
+                    value: ""
+                    type: string
+                xyz.openbmc_project.Inventory.Item.System:
+    - name: Creating Chassis Asset/Item/Chassis at startup
+      description: >
+          Create /system/chassis at startup and populate the Asset/Item/Chassis property with
+          default string.
+      type: startup
+      actions:
+          - name: createObjects
+            objs:
+             /system/chassis:
+                xyz.openbmc_project.Inventory.Decorator.Asset:
+                  SerialNumber:
+                    value: ""
+                    type: string
+                  Model:
+                    value: ""
+                    type: string
+                  Manufacturer:
+                    value: "Hewlett Packard Enterprise"
+                    type: string
+                xyz.openbmc_project.Inventory.Item:
+                  PrettyName:
+                    value: ""
+                    type: string
+                  Present:
+                    value: true
+                    type: boolean
+                xyz.openbmc_project.Inventory.Item.Chassis:
+                  Type:
+                    value: "23"
+                    type: string
+    - name: Creating Motherboard Asset/Item at startup
+      description: >
+          Create /system/chassis/motherboard at startup and populate the Asset/Item property with
+          default string.
+      type: startup
+      actions:
+          - name: createObjects
+            objs:
+             /system/chassis/motherboard:
+                xyz.openbmc_project.Inventory.Item:
+                  PrettyName:
+                    value: ""
+                    type: string
+                  Present:
+                    value: true
+                    type: boolean
+                xyz.openbmc_project.Inventory.Decorator.Asset:
+                  BuildDate:
+                    value: ""
+                    type: string
+                  PartNumber:
+                    value: ""
+                    type: string
+                  Manufacturer:
+                    value: "Hewlett Packard Enterprise"
+                    type: string
+                  SerialNumber:
+                    value: ""
+                    type: string
+    - name: Creating BMC NetworkInterface eth0 at startup
+      description: >
+          Create /system/chassis/bmc_eth0 at startup and populate the MAC address property with
+          empty string.
+      type: startup
+      actions:
+          - name: createObjects
+            objs:
+             /system/chassis/bmc_eth0:
+                xyz.openbmc_project.Inventory.Item.NetworkInterface:
+                  MACAddress:
+                    value: ""
+                    type: string
+    - name: Creating BMC NetworkInterface eth1 at startup
+      description: >
+          Create /system/chassis/bmc_eth1 at startup and populate the MAC address property with
+          empty string.
+      type: startup
+      actions:
+          - name: createObjects
+            objs:
+             /system/chassis/bmc_eth1:
+                xyz.openbmc_project.Inventory.Item.NetworkInterface:
+                  MACAddress:
+                    value: ""
+                    type: string

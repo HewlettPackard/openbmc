@@ -1,0 +1,1006 @@
+{
+    "PowerOnDelay": 60,
+    "TotalCPUs": 2,
+    "CPUs":[
+        {
+            "Name": "CPU1 Temp",
+            "CPUIndex": 0,
+            "PowerState": "On",
+            "Class":"CPUTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 99
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "CPU2 Temp",
+            "CPUIndex": 1,
+            "PowerState": "On",
+            "Class":"CPUTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 99
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "CPU1 DTS",
+            "CPUIndex": 0,
+            "PowerState": "On",
+            "Class":"CPUDTS",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 99
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "CPU2 DTS",
+            "CPUIndex": 1,
+            "PowerState": "On",
+            "Class":"CPUDTS",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 100
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 99
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 1
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        }
+    ],
+    "DIMMsPerChannel": 2,
+    "ChannelsPerCPU": 6,
+    "DIMMs":[
+        {
+            "Name": "DIMM1 Temp",
+            "LabelIndex": 1,
+            "DIMMChannel": 0,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM2 Temp",
+            "LabelIndex": 2,
+            "DIMMChannel": 0,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM3 Temp",
+            "LabelIndex": 3,
+            "DIMMChannel": 1,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM4 Temp",
+            "LabelIndex": 4,
+            "DIMMChannel": 1,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM5 Temp",
+            "LabelIndex": 5,
+            "DIMMChannel": 2,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM6 Temp",
+            "LabelIndex": 6,
+            "DIMMChannel": 2,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM7 Temp",
+            "LabelIndex": 7,
+            "DIMMChannel": 3,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM8 Temp",
+            "LabelIndex": 8,
+            "DIMMChannel": 3,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM9 Temp",
+            "LabelIndex": 9,
+            "DIMMChannel": 4,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM10 Temp",
+            "LabelIndex": 10,
+            "DIMMChannel": 4,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM11 Temp",
+            "LabelIndex": 11,
+            "DIMMChannel": 5,
+            "DIMMIndex": 0,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM12 Temp",
+            "LabelIndex": 12,
+            "DIMMChannel": 5,
+            "DIMMIndex": 1,
+            "CPUIndex":0,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM13 Temp",
+            "LabelIndex": 13,
+            "DIMMChannel": 0,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM14 Temp",
+            "LabelIndex": 14,
+            "DIMMChannel": 0,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM15 Temp",
+            "LabelIndex": 15,
+            "DIMMChannel": 1,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM16 Temp",
+            "LabelIndex": 16,
+            "DIMMChannel": 1,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM17 Temp",
+            "LabelIndex": 17,
+            "DIMMChannel": 2,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM18 Temp",
+            "LabelIndex": 18,
+            "DIMMChannel": 2,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM19 Temp",
+            "LabelIndex": 19,
+            "DIMMChannel": 3,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM20 Temp",
+            "LabelIndex": 20,
+            "DIMMChannel": 3,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM21 Temp",
+            "LabelIndex": 21,
+            "DIMMChannel": 4,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM22 Temp",
+            "LabelIndex": 22,
+            "DIMMChannel": 4,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM23 Temp",
+            "LabelIndex": 23,
+            "DIMMChannel": 5,
+            "DIMMIndex": 0,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        },
+        {
+            "Name": "DIMM24 Temp",
+            "LabelIndex": 24,
+            "DIMMChannel": 5,
+            "DIMMIndex": 1,
+            "CPUIndex":1,
+            "PowerState": "On",
+            "Class":"DIMMTemp",
+            "Thresholds":[
+                {
+                    "Direction": "greater than",
+                    "Name": "upper critical",
+                    "Severity": 1,
+                    "Value": 90
+                },
+                {
+                    "Direction": "greater than",
+                    "Name": "upper non critical",
+                    "Severity": 0,
+                    "Value": 87
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower non critical",
+                    "Severity": 0,
+                    "Value": 0
+                },
+                {
+                    "Direction": "less than",
+                    "Name": "lower critical",
+                    "Severity": 1,
+                    "Value": 0
+                }
+            ],
+            "Type": "nmCmdSensors"
+        }
+    ]
+}

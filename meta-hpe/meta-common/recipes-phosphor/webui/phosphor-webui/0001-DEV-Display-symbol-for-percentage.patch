@@ -1,0 +1,21 @@
+From 76578ceafea48f3a9166dc8dc8e091987b941894 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Sat, 17 Aug 2019 05:35:08 +0800
+Subject: [PATCH] DEV: Display % symbol for percentage
+
+---
+ app/common/services/constants.js | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/app/common/services/constants.js b/app/common/services/constants.js
+index 9931f01..d078ea3 100644
+--- a/app/common/services/constants.js
++++ b/app/common/services/constants.js
+@@ -57,6 +57,7 @@ window.angular && (function(angular) {
+         uppercase_titles: ['cpu', 'dimm']
+       },
+       SENSOR_UNIT_MAP: {
++        'xyz.openbmc_project.Sensor.Value.Unit.Percentage': '%',
+         'xyz.openbmc_project.Sensor.Value.Unit.RPMS': 'rpms',
+         'xyz.openbmc_project.Sensor.Value.Unit.DegreesC': 'C',
+         'xyz.openbmc_project.Sensor.Value.Unit.Volts': 'volts',

@@ -1,0 +1,165 @@
+From 6fca823b966a1869e44b9f41634b55105be31577 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Tue, 9 Jun 2020 19:12:33 +0000
+Subject: [PATCH] Support GXP gpio driver (Updated)
+
+---
+ CMakeLists.txt                                |  2 +-
+ inc/id_button.hpp                             |  6 ++
+ service_files/phosphor-button-handler.service |  1 +
+ src/button_handler.cpp                        | 57 +++++++++++++------
+ src/gpio.cpp                                  |  6 +-
+ 5 files changed, 50 insertions(+), 22 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ff6638b..f13c7e6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -10,7 +10,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/inc)
+ set(POWER_DBUS_OBJECT_NAME "xyz/openbmc_project/Chassis/Buttons/Power")
+ set(RESET_DBUS_OBJECT_NAME "xyz/openbmc_project/Chassis/Buttons/Reset")
+ set(ID_DBUS_OBJECT_NAME "xyz/openbmc_project/Chassis/Buttons/ID")
+-set(GPIO_BASE_LABEL_NAME "1e780000.gpio")
++set(GPIO_BASE_LABEL_NAME "gxp_gpio")
+ set(LONG_PRESS_TIME_MS 3000)
+ set(CHASSIS_STATE_OBJECT_NAME "xyz/openbmc_project/state/chassis")
+ set(HOST_STATE_OBJECT_NAME "xyz/openbmc_project/state/host")
+diff --git a/inc/id_button.hpp b/inc/id_button.hpp
+index 8116185..0ea5309 100644
+--- a/inc/id_button.hpp
++++ b/inc/id_button.hpp
+@@ -128,6 +128,12 @@ struct IDButton
+                 "ID_BUTTON: pressed");
+             // emit pressed signal
+             idButton->pressed();
++
++            // Only receive pressed interrupt
++            phosphor::logging::log<phosphor::logging::level::DEBUG>(
++                "ID_BUTTON: released");
++            // released
++            idButton->released();
+         }
+         else
+         {
+diff --git a/service_files/phosphor-button-handler.service b/service_files/phosphor-button-handler.service
+index 79b5b05..8c75fb7 100644
+--- a/service_files/phosphor-button-handler.service
++++ b/service_files/phosphor-button-handler.service
+@@ -9,6 +9,7 @@ After=obmc-mapper.target
+ Restart=always
+ ExecStart=/usr/bin/env button-handler
+ SyslogIdentifier=button-handler
++Type=idle
+ 
+ [Install]
+ WantedBy=multi-user.target
+diff --git a/src/button_handler.cpp b/src/button_handler.cpp
+index 7223108..6af609d 100644
+--- a/src/button_handler.cpp
++++ b/src/button_handler.cpp
+@@ -130,25 +130,35 @@ bool Handler::poweredOn() const
+ 
+ void Handler::powerPressed(sdbusplus::message::message& msg)
+ {
+-    auto transition = Host::Transition::On;
++    auto hostState = Host::HostState::Running;
+ 
+     try
+     {
+-        if (poweredOn())
+-        {
+-            transition = Host::Transition::Off;
+-        }
+-
+         log<level::INFO>("Handling power button press");
+-
+-        std::variant<std::string> state = convertForMessage(transition);
+-
+-        auto service = getService(HOST_STATE_OBJECT_NAME, hostIface);
+-        auto method = bus.new_method_call(
+-            service.c_str(), HOST_STATE_OBJECT_NAME, propertyIface, "Set");
+-        method.append(hostIface, "RequestedHostTransition", state);
+-
+-        bus.call(method);
++        if (poweredOn()) {
++            // No need to requestHostTransition, left HW do that.
++            // And op-power-ctl will emit pgood status to state-manager
++            log<level::INFO>("Power state On");
++        } else {
++            // set State.Host to HostState.Running
++            std::variant<std::string> state =
++                convertForMessage(hostState);
++            auto service = getService(HOST_STATE_OBJECT_NAME, hostIface);
++            auto method = bus.new_method_call(
++                service.c_str(), HOST_STATE_OBJECT_NAME, propertyIface, "Set");
++            method.append(hostIface, "CurrentHostState", state);
++            bus.call(method);
++
++            // set State.Chassis to ChassisState.On
++            state = convertForMessage(Chassis::PowerState::On);
++
++            service = getService(CHASSIS_STATE_OBJECT_NAME, chassisIface);
++            method = bus.new_method_call(
++                service.c_str(), CHASSIS_STATE_OBJECT_NAME, propertyIface, "Set");
++            method.append(chassisIface, "CurrentPowerState", state);
++
++            bus.call(method);
++        }
+     }
+     catch (SdBusError& e)
+     {
+@@ -170,13 +180,24 @@ void Handler::longPowerPressed(sdbusplus::message::message& msg)
+ 
+         log<level::INFO>("Handling long power button press");
+ 
++        // set State.Host to HostState.Off
+         std::variant<std::string> state =
+-            convertForMessage(Chassis::Transition::Off);
++            convertForMessage(Host::HostState::Off);
+ 
+-        auto service = getService(CHASSIS_STATE_OBJECT_NAME, chassisIface);
++        auto service = getService(HOST_STATE_OBJECT_NAME, hostIface);
+         auto method = bus.new_method_call(
++            service.c_str(), HOST_STATE_OBJECT_NAME, propertyIface, "Set");
++        method.append(hostIface, "CurrentHostState", state);
++
++        bus.call(method);
++
++        // set State.Chassis to ChassisState.Off
++        state = convertForMessage(Chassis::PowerState::Off);
++
++        service = getService(CHASSIS_STATE_OBJECT_NAME, chassisIface);
++        method = bus.new_method_call(
+             service.c_str(), CHASSIS_STATE_OBJECT_NAME, propertyIface, "Set");
+-        method.append(chassisIface, "RequestedPowerTransition", state);
++        method.append(chassisIface, "CurrentPowerState", state);
+ 
+         bus.call(method);
+     }
+diff --git a/src/gpio.cpp b/src/gpio.cpp
+index 05b8e15..cb2ceba 100644
+--- a/src/gpio.cpp
++++ b/src/gpio.cpp
+@@ -77,11 +77,11 @@ uint32_t getGpioBase()
+ #endif
+ }
+ 
+-uint32_t getGpioNum(const std::string& gpioPin)
++uint32_t getGpioNum(int offset)
+ {
+     // gpioplus promises that they will figure out how to easily
+     // support multiple BMC vendors when the time comes.
+-    auto offset = gpioplus::utility::aspeed::nameToOffset(gpioPin);
++    //auto offset = gpioplus::utility::aspeed::nameToOffset(gpioPin);
+ 
+     return getGpioBase() + offset;
+ }
+@@ -129,7 +129,7 @@ std::optional<std::tuple<int, std::string>>
+ 
+         if (gpio != defs.end())
+         {
+-            return std::make_tuple(getGpioNum((*gpio)["pin"]),
++            return std::make_tuple(getGpioNum((*gpio)["num"]),
+                                    (*gpio)["direction"]);
+         }
+         else

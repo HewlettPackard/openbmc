@@ -1,0 +1,258 @@
+From 258d4ad2e82518cbe165b0f21bdb478a54597009 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Thu, 8 Aug 2019 04:32:28 +0800
+Subject: [PATCH] DEV: Support Host State Management
+
+---
+ chassis_state_manager.cpp | 18 +++++++++++++
+ chassis_state_manager.hpp | 40 +++++++++++++++++++++++++++++
+ host_state_manager.cpp    | 53 ++++++++++++++++++++++++++++++++++++++-
+ host_state_manager.hpp    | 47 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 157 insertions(+), 1 deletion(-)
+
+diff --git a/chassis_state_manager.cpp b/chassis_state_manager.cpp
+index e71e4b5..7ea013b 100644
+--- a/chassis_state_manager.cpp
++++ b/chassis_state_manager.cpp
+@@ -237,6 +237,24 @@ int Chassis::sysStateChange(sdbusplus::message::message& msg)
+     return 0;
+ }
+ 
++void Chassis::PowerGoodState(sdbusplus::message::message& msg)
++{
++    log<level::INFO>("Received PowerGood siganl - Chassis. \n");
++    server::Chassis::currentPowerState(PowerState::On);
++    this->setStateChangeTime();
++}
++
++void Chassis::PowerLostState(sdbusplus::message::message& msg)
++{
++    log<level::INFO>("Received PowerLost signal - Chassis. \n");
++    server::Chassis::currentPowerState(PowerState::Off);
++    // Need to clear up obmc-host-start@0.target and 
++    // op-pwr-ctrl will handle duplicated signal (host is already off)
++    this->requestedPowerTransition(server::Chassis::Transition::Off);
++    this->setStateChangeTime();
++}
++
++
+ Chassis::Transition Chassis::requestedPowerTransition(Transition value)
+ {
+ 
+diff --git a/chassis_state_manager.hpp b/chassis_state_manager.hpp
+index d1943dc..fb2b964 100644
+--- a/chassis_state_manager.hpp
++++ b/chassis_state_manager.hpp
+@@ -51,6 +51,20 @@ class Chassis : public ChassisInherit
+                 sdbusRule::interface("org.freedesktop.systemd1.Manager"),
+             std::bind(std::mem_fn(&Chassis::sysStateChange), this,
+                       std::placeholders::_1)),
++        PowerGoodSignals(
++            bus,
++            sdbusRule::type::signal() + sdbusRule::member("PowerGood") +
++                sdbusRule::path("/org/openbmc/control/power0") +
++                sdbusRule::interface("org.openbmc.control.Power"),
++            std::bind(std::mem_fn(&Chassis::PowerGoodState), this,
++                      std::placeholders::_1)),
++        PowerLostSignals(
++            bus,
++            sdbusRule::type::signal() + sdbusRule::member("PowerLost") +
++                sdbusRule::path("/org/openbmc/control/power0") +
++                sdbusRule::interface("org.openbmc.control.Power"),
++            std::bind(std::mem_fn(&Chassis::PowerLostState), this,
++                      std::placeholders::_1)),
+         pOHTimer(sdeventplus::Event::get_default(),
+                  std::bind(&Chassis::pOHCallback, this), std::chrono::hours{1},
+                  std::chrono::minutes{1})
+@@ -123,12 +137,38 @@ class Chassis : public ChassisInherit
+      */
+     int sysStateChange(sdbusplus::message::message& msg);
+ 
++    /** @brief Check if PowerGood is relevant to this object
++     *
++     * Instance specific interface to handle the detected pgood state
++     * change
++     *
++     * @param[in]  msg       - Data associated with subscribed signal
++     *
++     */
++    void PowerGoodState(sdbusplus::message::message& msg);
++
++    /** @brief Check if PowerLost is relevant to this object
++     *
++     * Instance specific interface to handle the detected pgood state
++     * change
++     *
++     * @param[in]  msg       - Data associated with subscribed signal
++     *
++     */
++    void PowerLostState(sdbusplus::message::message& msg);
++
+     /** @brief Persistent sdbusplus DBus connection. */
+     sdbusplus::bus::bus& bus;
+ 
+     /** @brief Used to subscribe to dbus systemd signals **/
+     sdbusplus::bus::match_t systemdSignals;
+ 
++    /** @brief Used to subscribe to dbus PowerLost signals **/
++    sdbusplus::bus::match_t PowerGoodSignals;
++
++    /** @brief Used to subscribe to dbus PowerGood signals **/
++    sdbusplus::bus::match_t PowerLostSignals;
++
+     /** @brief Used to Set value of POHCounter */
+     uint32_t pOHCounter(uint32_t value) override;
+ 
+diff --git a/host_state_manager.cpp b/host_state_manager.cpp
+index bdc2a86..ff16124 100644
+--- a/host_state_manager.cpp
++++ b/host_state_manager.cpp
+@@ -89,10 +89,46 @@ void Host::subscribeToSystemdSignals()
+     return;
+ }
+ 
++int Host::determinePgoodState()
++{
++    std::variant<int> pgood = -1;
++    auto method = this->bus.new_method_call(
++        "org.openbmc.control.Power", "/org/openbmc/control/power0",
++        "org.freedesktop.DBus.Properties", "Get");
++
++    method.append("org.openbmc.control.Power", "pgood");
++    try
++    {
++        auto reply = this->bus.call(method);
++        reply.read(pgood);
++
++        return std::get<int>(pgood);
++    }
++    catch (const SdBusError& e)
++    {
++        // It's acceptable for the pgood state service to not be available
++        // since it will notify us of the pgood state when it comes up.
++        if (e.name() != nullptr &&
++            strcmp("org.freedesktop.DBus.Error.ServiceUnknown", e.name()) == 0)
++        {
++            goto fail;
++        }
++
++        // Only log for unexpected error types.
++        log<level::ERR>("Error performing call to get pgood",
++                        entry("ERROR=%s", e.what()));
++        goto fail;
++    }
++
++fail:
++    log<level::INFO>("Initial Pgood State is Off");
++    return 0;
++}
++
+ void Host::determineInitialState()
+ {
+ 
+-    if (stateActive(HOST_STATE_POWERON_MIN_TGT))
++    if (stateActive(HOST_STATE_POWERON_MIN_TGT) || determinePgoodState())
+     {
+         log<level::INFO>("Initial Host State will be Running",
+                          entry("CURRENT_HOST_STATE=%s",
+@@ -292,6 +328,21 @@ void Host::sysStateChangeJobNew(sdbusplus::message::message& msg)
+     }
+ }
+ 
++void Host::PowerGoodState(sdbusplus::message::message& msg)
++{
++    log<level::INFO>("Received PowerGood signal - Host. \n");
++    server::Host::currentHostState(HostState::Running);
++    // Need to clear up obmc-host-stop@0.target and
++    // op-pwr-ctrl will handle duplicated signal (host is already on)
++    this->requestedHostTransition(Transition::On);
++}
++
++void Host::PowerLostState(sdbusplus::message::message& msg)
++{
++    log<level::INFO>("Received PowerLost signal - Host. \n");
++    server::Host::currentHostState(HostState::Off);
++}
++
+ uint32_t Host::decrementRebootCount()
+ {
+     auto rebootCount = reboot::RebootAttempts::attemptsLeft();
+diff --git a/host_state_manager.hpp b/host_state_manager.hpp
+index c57c8aa..48270df 100644
+--- a/host_state_manager.hpp
++++ b/host_state_manager.hpp
+@@ -65,6 +65,20 @@ class Host : public HostInherit
+                 sdbusRule::interface("org.freedesktop.systemd1.Manager"),
+             std::bind(std::mem_fn(&Host::sysStateChangeJobNew), this,
+                       std::placeholders::_1)),
++        PowerGoodSignals(
++            bus,
++            sdbusRule::type::signal() + sdbusRule::member("PowerGood") +
++                sdbusRule::path("/org/openbmc/control/power0") +
++                sdbusRule::interface("org.openbmc.control.Power"),
++            std::bind(std::mem_fn(&Host::PowerGoodState), this,
++                      std::placeholders::_1)),
++        PowerLostSignals(
++            bus,
++            sdbusRule::type::signal() + sdbusRule::member("PowerLost") +
++                sdbusRule::path("/org/openbmc/control/power0") +
++                sdbusRule::interface("org.openbmc.control.Power"),
++            std::bind(std::mem_fn(&Host::PowerLostState), this,
++                      std::placeholders::_1)),
+         settings(bus)
+     {
+         // Enable systemd signals
+@@ -116,6 +130,13 @@ class Host : public HostInherit
+     }
+ 
+   private:
++    /**
++     * @brief Determine initial pgood state and set internally
++     *
++     * @return Will throw exceptions on failure
++     **/
++    int determinePgoodState();
++
+     /**
+      * @brief subscribe to the systemd signals
+      *
+@@ -183,6 +204,26 @@ class Host : public HostInherit
+      */
+     void sysStateChangeJobNew(sdbusplus::message::message& msg);
+ 
++    /** @brief Check if PowerGood is relevant to this object
++     *
++     * Instance specific interface to handle the detected pgood state
++     * change
++     *
++     * @param[in]  msg       - Data associated with subscribed signal
++     *
++     */
++    void PowerGoodState(sdbusplus::message::message& msg);
++
++    /** @brief Check if PowerLost is relevant to this object
++     *
++     * Instance specific interface to handle the detected pgood state
++     * change
++     *
++     * @param[in]  msg       - Data associated with subscribed signal
++     *
++     */
++    void PowerLostState(sdbusplus::message::message& msg);
++
+     /** @brief Decrement reboot count
+      *
+      * This is used internally to this application to decrement the boot
+@@ -273,6 +314,12 @@ class Host : public HostInherit
+     /** @brief Used to subscribe to dbus systemd JobNew signal **/
+     sdbusplus::bus::match_t systemdSignalJobNew;
+ 
++    /** @brief Used to subscribe to dbus PowerLost signals **/
++    sdbusplus::bus::match_t PowerGoodSignals;
++
++    /** @brief Used to subscribe to dbus PowerGood signals **/
++    sdbusplus::bus::match_t PowerLostSignals;
++
+     // Settings objects of interest
+     settings::Objects settings;
+ };

@@ -1,0 +1,176 @@
+From 4f70504611c51fc02b9c6425df965939428d05f8 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Mon, 27 Jul 2020 19:51:26 +0800
+Subject: [PATCH] Support power button to do a soft power-off
+
+---
+ softoff/mainapp.cpp |  7 ++----
+ softoff/softoff.cpp | 59 +++++++++++++++++++++++++++++++++++++++++++++
+ softoff/softoff.hpp | 40 ++++++++++++++++++++++--------
+ 3 files changed, 91 insertions(+), 15 deletions(-)
+
+diff --git a/softoff/mainapp.cpp b/softoff/mainapp.cpp
+index 70defb7..a88d67c 100644
+--- a/softoff/mainapp.cpp
++++ b/softoff/mainapp.cpp
+@@ -65,11 +65,8 @@ int main(int argc, char** argv)
+         }
+     }
+ 
+-    // Log an error if we timed out after getting Ack for SMS_ATN and before
+-    // getting the Host Shutdown response
+-    if (powerObj.isTimerExpired() &&
+-        (powerObj.responseReceived() ==
+-         phosphor::ipmi::Base::SoftPowerOff::HostResponse::SoftOffReceived))
++    // Log an error if we timed out after pressing virtual power buttton
++    if (powerObj.isTimerExpired())
+     {
+         using error =
+             sdbusplus::xyz::openbmc_project::State::Host::Error::SoftOffTimeout;
+diff --git a/softoff/softoff.cpp b/softoff/softoff.cpp
+index e6ed0eb..0463361 100644
+--- a/softoff/softoff.cpp
++++ b/softoff/softoff.cpp
+@@ -52,6 +52,48 @@ void SoftPowerOff::sendHostShutDownCmd()
+     return;
+ }
+ 
++void SoftPowerOff::sendPressVirtualButtonCmd()
++{
++    auto ctrlHostPath = std::string("/org/openbmc/control/power0");
++    auto host = ::ipmi::getService(this->bus, "org.openbmc.control.Power", ctrlHostPath.c_str());
++
++    auto method = bus.new_method_call(host.c_str(), ctrlHostPath.c_str(),
++                                      "org.openbmc.control.Power", "pressPowerButton");
++
++    method.append(200); // Press 200 ms
++
++    auto reply = bus.call(method);
++    if (reply.is_method_error())
++    {
++        log<level::ERR>("Error in call to press virtual button command");
++        throw std::runtime_error("Error in call to press virtual button command");
++    }
++
++    log<level::DEBUG>("Virtaul power button pressed. Wait for Host Power-Off.");
++
++    // Start timer for host shutdown
++    using namespace std::chrono;
++
++    auto time = duration_cast<microseconds>(seconds(IPMI_HOST_SHUTDOWN_COMPLETE_TIMEOUT_SECS));
++    auto r = startTimer(time);
++    if (r < 0)
++    {
++        log<level::ERR>("Failure to start Host shutdown wait timer",
++                        entry("ERRNO=0x%X", -r));
++    }
++    else
++    {
++        log<level::INFO>(
++            "Timer started waiting for host to shutdown",
++            entry("TIMEOUT_IN_MSEC=%llu",
++                  (duration_cast<milliseconds>(
++                       seconds(IPMI_HOST_SHUTDOWN_COMPLETE_TIMEOUT_SECS)))
++                      .count()));
++    }
++
++    return;
++}
++
+ // Function called on host control signals
+ void SoftPowerOff::hostControlEvent(sdbusplus::message::message& msg)
+ {
+@@ -100,6 +142,23 @@ void SoftPowerOff::hostControlEvent(sdbusplus::message::message& msg)
+     return;
+ }
+ 
++void SoftPowerOff::hostStateEvent(sdbusplus::message::message& msg)
++{
++    log<level::DEBUG>("Host power off now and stop the timer.");
++
++    using namespace std::chrono;
++    auto r = timer.stop();
++    if (r < 0)
++    {
++        log<level::ERR>("Failure to STOP the timer",
++                        entry("ERRNO=0x%X", -r));
++    }
++
++    // This marks the completion of soft power off sequence.
++    completed = true;
++    return;
++}
++
+ // Starts a timer
+ int SoftPowerOff::startTimer(const std::chrono::microseconds& usec)
+ {
+diff --git a/softoff/softoff.hpp b/softoff/softoff.hpp
+index 1c9341b..d79ac4e 100644
+--- a/softoff/softoff.hpp
++++ b/softoff/softoff.hpp
+@@ -38,22 +38,18 @@ class SoftPowerOff
+         bus(bus), timer(event),
+         hostControlSignal(
+             bus,
+-            sdbusRule::type::signal() + sdbusRule::member("CommandComplete") +
+-                sdbusRule::path("/xyz/openbmc_project/control/host0") +
+-                sdbusRule::interface(CONTROL_HOST_BUSNAME) +
+-                sdbusRule::argN(0, convertForMessage(Host::Command::SoftOff)),
+-            std::bind(std::mem_fn(&SoftPowerOff::hostControlEvent), this,
++            sdbusRule::type::signal() + sdbusRule::member("PowerLost") +
++                sdbusRule::path("/org/openbmc/control/power0") +
++                sdbusRule::interface("org.openbmc.control.Power"),
++            std::bind(std::mem_fn(&SoftPowerOff::hostStateEvent), this,
+                       std::placeholders::_1))
+     {
+         // Need to announce since we may get the response
+         // very quickly on host shutdown command
+         emit_object_added();
+ 
+-        // The whole purpose of this application is to send a host shutdown
+-        // command and watch for the soft power off to go through. We need
+-        // the interface added signal emitted before we send the shutdown
+-        // command just to attend to lightning fast response from host
+-        sendHostShutDownCmd();
++        // Press virtual power button to trigger host to do a shutdown
++        sendPressVirtualButtonCmd();
+     }
+ 
+     /** @brief Tells if the objective of this application is completed */
+@@ -130,12 +126,36 @@ class SoftPowerOff
+      */
+     void sendHostShutDownCmd();
+ 
++    /** @brief Sends virtual power button command to tell host to shut down
++     *
++     *  After sending the command, wait for a signal indicating the status
++     *  of the command.
++     *
++     *  After receiving the initial response, start a timer for 30 minutes
++     *  to let host do a shutdown. If BMC fails to get any response, then
++     *  a hard power off would be forced.
++     *
++     *  @return - Does not return anything. Error will result in exception
++     *            being thrown
++     */
++    void sendPressVirtualButtonCmd();
++
+     /** @brief Callback function on host control signals
+      *
+      * @param[in]  msg       - Data associated with subscribed signal
+      *
+      */
+     void hostControlEvent(sdbusplus::message::message& msg);
++
++    /** @brief Check if PowerLost is relevant to this object
++     *
++     * Instance specific interface to handle the detected pgood state
++     * change
++     *
++     * @param[in]  msg       - Data associated with subscribed signal
++     *
++     */
++    void hostStateEvent(sdbusplus::message::message& msg);
+ };
+ } // namespace ipmi
+ } // namespace phosphor

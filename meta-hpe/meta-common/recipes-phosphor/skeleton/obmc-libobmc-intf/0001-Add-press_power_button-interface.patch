@@ -1,0 +1,283 @@
+From 2fbe0795ab6fadebf01f0e1d20b8f9686c06fb79 Mon Sep 17 00:00:00 2001
+From: John Chung <john.chung@hpe.com>
+Date: Mon, 27 Jul 2020 19:48:29 +0800
+Subject: [PATCH] Add press_power_button interface
+
+---
+ libopenbmc_intf/openbmc_intf.c   | 170 +++++++++++++++++++++++++++++++
+ libopenbmc_intf/openbmc_intf.h   |  27 +++++
+ libopenbmc_intf/openbmc_intf.xml |   3 +
+ 3 files changed, 200 insertions(+)
+
+diff --git a/libopenbmc_intf/openbmc_intf.c b/libopenbmc_intf/openbmc_intf.c
+index 32efdd8..4e28d04 100644
+--- a/libopenbmc_intf/openbmc_intf.c
++++ b/libopenbmc_intf/openbmc_intf.c
+@@ -16231,10 +16231,41 @@ static const _ExtendedGDBusMethodInfo _control_power_method_info_get_power_state
+   FALSE
+ };
+ 
++static const _ExtendedGDBusArgInfo _control_power_method_info_press_power_button_IN_ARG_millisecond =
++{
++  {
++    -1,
++    (gchar *) "millisecond",
++    (gchar *) "i",
++    NULL
++  },
++  FALSE
++};
++
++static const _ExtendedGDBusArgInfo * const _control_power_method_info_press_power_button_IN_ARG_pointers[] =
++{
++  &_control_power_method_info_press_power_button_IN_ARG_millisecond,
++  NULL
++};
++
++static const _ExtendedGDBusMethodInfo _control_power_method_info_press_power_button =
++{
++  {
++    -1,
++    (gchar *) "pressPowerButton",
++    (GDBusArgInfo **) &_control_power_method_info_press_power_button_IN_ARG_pointers,
++    NULL,
++    NULL
++  },
++  "handle-press-power-button",
++  FALSE
++};
++
+ static const _ExtendedGDBusMethodInfo * const _control_power_method_info_pointers[] =
+ {
+   &_control_power_method_info_set_power_state,
+   &_control_power_method_info_get_power_state,
++  &_control_power_method_info_press_power_button,
+   NULL
+ };
+ 
+@@ -16434,6 +16465,29 @@ control_power_default_init (ControlPowerIface *iface)
+     1,
+     G_TYPE_DBUS_METHOD_INVOCATION);
+ 
++  /**
++   * ControlPower::handle-press-power-button:
++   * @object: A #ControlPower.
++   * @invocation: A #GDBusMethodInvocation.
++   * @arg_millisecond: Argument passed by remote caller.
++   *
++   * Signal emitted when a remote caller is invoking the <link linkend="gdbus-method-org-openbmc-control-Power.pressPowerButton">pressPowerButton()</link> D-Bus method.
++   *
++   * If a signal handler returns %TRUE, it means the signal handler will handle the invocation (e.g. take a reference to @invocation and eventually call control_power_complete_press_power_button() or e.g. g_dbus_method_invocation_return_error() on it) and no order signal handlers will run. If no signal handler handles the invocation, the %G_DBUS_ERROR_UNKNOWN_METHOD error is returned.
++   *
++   * Returns: %TRUE if the invocation was handled, %FALSE to let other signal handlers run.
++   */
++  g_signal_new ("handle-press-power-button",
++    G_TYPE_FROM_INTERFACE (iface),
++    G_SIGNAL_RUN_LAST,
++    G_STRUCT_OFFSET (ControlPowerIface, handle_press_power_button),
++    g_signal_accumulator_true_handled,
++    NULL,
++    g_cclosure_marshal_generic,
++    G_TYPE_BOOLEAN,
++    2,
++    G_TYPE_DBUS_METHOD_INVOCATION, G_TYPE_INT);
++
+   /* GObject signals for received D-Bus signals: */
+   /**
+    * ControlPower::power-good:
+@@ -16816,6 +16870,104 @@ _out:
+   return _ret != NULL;
+ }
+ 
++/**
++ * control_power_call_press_power_button:
++ * @proxy: A #ControlPowerProxy.
++ * @arg_millisecond: Argument to pass with the method invocation.
++ * @cancellable: (nullable): A #GCancellable or %NULL.
++ * @callback: A #GAsyncReadyCallback to call when the request is satisfied or %NULL.
++ * @user_data: User data to pass to @callback.
++ *
++ * Asynchronously invokes the <link linkend="gdbus-method-org-openbmc-control-Power.pressPowerButton">pressPowerButton()</link> D-Bus method on @proxy.
++ * When the operation is finished, @callback will be invoked in the <link linkend="g-main-context-push-thread-default">thread-default main loop</link> of the thread you are calling this method from.
++ * You can then call control_power_call_press_power_button_finish() to get the result of the operation.
++ *
++ * See control_power_call_press_power_button_sync() for the synchronous, blocking version of this method.
++ */
++void
++control_power_call_press_power_button (
++    ControlPower *proxy,
++    gint arg_millisecond,
++    GCancellable *cancellable,
++    GAsyncReadyCallback callback,
++    gpointer user_data)
++{
++  g_dbus_proxy_call (G_DBUS_PROXY (proxy),
++    "pressPowerButton",
++    g_variant_new ("(i)",
++                   arg_millisecond),
++    G_DBUS_CALL_FLAGS_NONE,
++    -1,
++    cancellable,
++    callback,
++    user_data);
++}
++
++/**
++ * control_power_call_press_power_button_finish:
++ * @proxy: A #ControlPowerProxy.
++ * @res: The #GAsyncResult obtained from the #GAsyncReadyCallback passed to control_power_call_press_power_button().
++ * @error: Return location for error or %NULL.
++ *
++ * Finishes an operation started with control_power_call_press_power_button().
++ *
++ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
++ */
++gboolean
++control_power_call_press_power_button_finish (
++    ControlPower *proxy,
++    GAsyncResult *res,
++    GError **error)
++{
++  GVariant *_ret;
++  _ret = g_dbus_proxy_call_finish (G_DBUS_PROXY (proxy), res, error);
++  if (_ret == NULL)
++    goto _out;
++  g_variant_get (_ret,
++                 "()");
++  g_variant_unref (_ret);
++_out:
++  return _ret != NULL;
++}
++
++/**
++ * control_power_call_press_power_button_sync:
++ * @proxy: A #ControlPowerProxy.
++ * @arg_millisecond: Argument to pass with the method invocation.
++ * @cancellable: (nullable): A #GCancellable or %NULL.
++ * @error: Return location for error or %NULL.
++ *
++ * Synchronously invokes the <link linkend="gdbus-method-org-openbmc-control-Power.pressPowerButton">pressPowerButton()</link> D-Bus method on @proxy. The calling thread is blocked until a reply is received.
++ *
++ * See control_power_call_press_power_button() for the asynchronous version of this method.
++ *
++ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
++ */
++gboolean
++control_power_call_press_power_button_sync (
++    ControlPower *proxy,
++    gint arg_millisecond,
++    GCancellable *cancellable,
++    GError **error)
++{
++  GVariant *_ret;
++  _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
++    "pressPowerButton",
++    g_variant_new ("(i)",
++                   arg_millisecond),
++    G_DBUS_CALL_FLAGS_NONE,
++    -1,
++    cancellable,
++    error);
++  if (_ret == NULL)
++    goto _out;
++  g_variant_get (_ret,
++                 "()");
++  g_variant_unref (_ret);
++_out:
++  return _ret != NULL;
++}
++
+ /**
+  * control_power_complete_set_power_state:
+  * @object: A #ControlPower.
+@@ -16855,6 +17007,24 @@ control_power_complete_get_power_state (
+                    state));
+ }
+ 
++/**
++ * control_power_complete_press_power_button:
++ * @object: A #ControlPower.
++ * @invocation: (transfer full): A #GDBusMethodInvocation.
++ *
++ * Helper function used in service implementations to finish handling invocations of the <link linkend="gdbus-method-org-openbmc-control-Power.pressPowerButton">pressPowerButton()</link> D-Bus method. If you instead want to finish handling an invocation by returning an error, use g_dbus_method_invocation_return_error() or similar.
++ *
++ * This method will free @invocation, you cannot use it afterwards.
++ */
++void
++control_power_complete_press_power_button (
++    ControlPower *object,
++    GDBusMethodInvocation *invocation)
++{
++  g_dbus_method_invocation_return_value (invocation,
++    g_variant_new ("()"));
++}
++
+ /* ------------------------------------------------------------------------ */
+ 
+ /**
+diff --git a/libopenbmc_intf/openbmc_intf.h b/libopenbmc_intf/openbmc_intf.h
+index 122354e..33a3747 100644
+--- a/libopenbmc_intf/openbmc_intf.h
++++ b/libopenbmc_intf/openbmc_intf.h
+@@ -2199,6 +2199,11 @@ struct _ControlPowerIface
+     ControlPower *object,
+     GDBusMethodInvocation *invocation);
+ 
++  gboolean (*handle_press_power_button) (
++    ControlPower *object,
++    GDBusMethodInvocation *invocation,
++    gint arg_second);
++
+   gboolean (*handle_set_power_state) (
+     ControlPower *object,
+     GDBusMethodInvocation *invocation,
+@@ -2234,6 +2239,10 @@ void control_power_complete_get_power_state (
+     GDBusMethodInvocation *invocation,
+     gint state);
+ 
++void control_power_complete_press_power_button (
++    ControlPower *object,
++    GDBusMethodInvocation *invocation);
++
+ 
+ 
+ /* D-Bus signal emissions functions: */
+@@ -2282,6 +2291,24 @@ gboolean control_power_call_get_power_state_sync (
+     GCancellable *cancellable,
+     GError **error);
+ 
++void control_power_call_press_power_button (
++    ControlPower *proxy,
++    gint arg_second,
++    GCancellable *cancellable,
++    GAsyncReadyCallback callback,
++    gpointer user_data);
++
++gboolean control_power_call_press_power_button_finish (
++    ControlPower *proxy,
++    GAsyncResult *res,
++    GError **error);
++
++gboolean control_power_call_press_power_button_sync (
++    ControlPower *proxy,
++    gint arg_second,
++    GCancellable *cancellable,
++    GError **error);
++
+ 
+ 
+ /* D-Bus property accessors: */
+diff --git a/libopenbmc_intf/openbmc_intf.xml b/libopenbmc_intf/openbmc_intf.xml
+index f8c726c..598e764 100644
+--- a/libopenbmc_intf/openbmc_intf.xml
++++ b/libopenbmc_intf/openbmc_intf.xml
+@@ -116,6 +116,9 @@
+ 		<method name="getPowerState">
+ 			<arg name="state" type="i" direction="out"/>
+ 		</method>
++		<method name="pressPowerButton">
++			<arg name="millisecond" type="i" direction="in"/>
++		</method>
+ 		<signal name="PowerGood">
+ 		</signal>
+ 		<signal name="PowerLost">

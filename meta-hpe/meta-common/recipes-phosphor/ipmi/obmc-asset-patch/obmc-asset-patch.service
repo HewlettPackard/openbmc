@@ -1,0 +1,12 @@
+[Unit]
+Description=OBMC asset data patch
+After=xyz.openbmc_project.Inventory.Manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "obmc-asset-patch.sh"
+SyslogIdentifier=obmc-asset-patch
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

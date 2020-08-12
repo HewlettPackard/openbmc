@@ -1,0 +1,21 @@
+From 9154f0533d6bcd9897c78ea0c1d1995847a2a088 Mon Sep 17 00:00:00 2001
+From: Jorge Cisneros <jorge.cisneros@hpe.com>
+Date: Mon, 3 Aug 2020 19:11:02 +0000
+Subject: [PATCH] Added obmc-flash-host-bios@.service
+
+---
+ meson.build | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/meson.build b/meson.build
+index 96748fb..91e365d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -91,6 +91,7 @@ systemd_system_unit_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir')
+ 
+ unit_files = [
+     'obmc-flash-bmc-setenv@.service.in',
++    'obmc-flash-host-bios@.service.in',
+     'reboot-guard-disable.service.in',
+     'reboot-guard-enable.service.in',
+     'force-reboot.service.in',
