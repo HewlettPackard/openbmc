@@ -1,6 +1,6 @@
 inherit uboot-sign
 
-UBOOT_SIGN_ENABLE = "1"
+UBOOT_SIGN_ENABLE = "0"
 UBOOT_SIGN_KEYDIR = "${TOPDIR}/../meta-hpe/meta-gxp/recipes-bsp/u-boot/u-boot-gxp/"
 UBOOT_SIGN_KEYNAME = "dev"
 
