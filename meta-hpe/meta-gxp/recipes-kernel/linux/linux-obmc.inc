@@ -6,7 +6,7 @@ PROVIDES += "virtual/kernel"
 
 KCONFIG_MODE="--alldefconfig"
 
-KSRC ?= "git://git@github.hpe.com/hpe-iop/iop-linux.git;protocol=ssh;branch=${KBRANCH}"
+KSRC ?= "git://github.com/HewlettPackard/gxp-linux.git;branch=${KBRANCH}"
 SRC_URI = "${KSRC}"
 SRC_URI += " file://defconfig"
 

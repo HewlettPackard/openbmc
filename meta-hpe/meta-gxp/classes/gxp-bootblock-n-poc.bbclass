@@ -1,13 +1,10 @@
 LICENSE = "CLOSED"
 LIC_FILES_CHKSUM = ""
 
-# TODO:  Manually copy the U-Boot signing key here:
-HPE_GXP_KEY_FILES_DIR = "${COREBASE}/meta-hpe/meta-gxp/recipes-bsp/image/files"
 
-KBRANCH = "n-dl360gen10-obmc-poc"
-
-SRC_URI = "git://git@github.hpe.com/hpe-iop/iop-bootblock.git;protocol=ssh;branch=${KBRANCH}"
-SRCREV = "6ddb59740a35cfb034b80a201db2e2fbaae2a626"
+BBRANCH = "master"
+SRC_URI = "git://github.com/HewlettPackard/gxp-bootblock.git;branch=${BBRANCH}"
+SRCREV = "1d4b424934ab3a2f22cf1b9a459a38e45971509f"
 S = "${WORKDIR}/git"
 
 inherit deploy
@@ -15,11 +12,8 @@ inherit deploy
 do_deploy () {
   install -d ${DEPLOYDIR}
 
-  # Copy in the bootblock
-  install -m 644 gxp-bootblock.bin ${DEPLOYDIR}/gxp-bootblock.bin
+  install -m 644 gxp-bootblock-dl360poc.bin ${DEPLOYDIR}/gxp-bootblock.bin
 
-  # Copy in files from the files subdirectory
-  install -m 644 ${HPE_GXP_KEY_FILES_DIR}/header.sig ${DEPLOYDIR}/hpe-uboot-header.section
 }
 
 addtask deploy before do_build after do_compile

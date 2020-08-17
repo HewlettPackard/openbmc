@@ -1,4 +1,4 @@
-HOMEPAGE = "https://github.hpe.com/hpe-iop/iop-uboot"
+HOMEPAGE = "https://www.github.com/HewlettPackard/gxp-uboot"
 DEPENDS += "flex-native bison-native bc-native"
 
 LICENSE = "GPLv2+"
@@ -7,9 +7,9 @@ PE = "1"
 
 # We use the revision in order to avoid having to fetch it from the
 # repo during parse
-SRCREV = "00a2e4a1663b1bd801fd5a360769b2232ade0035"
+SRCREV = "e15b2ace2d7f38d470ba3b0415d47e05281c7660"
 UBRANCH = "v2019.07-gxp-openbmc"
-SRC_URI = "git://git@github.hpe.com/hpe-iop/iop-uboot.git;branch=${UBRANCH};protocol=ssh"
+SRC_URI = "git://github.com/HewlettPackard/gxp-uboot.git;branch=${UBRANCH}"
 
 S = "${WORKDIR}/git"
 
