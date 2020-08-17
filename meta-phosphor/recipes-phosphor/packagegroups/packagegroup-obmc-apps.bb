@@ -7,15 +7,16 @@ PROVIDES = "${PACKAGES}"
 PACKAGES = " \
         ${PN}-bmc-state-mgmt \
         ${PN}-chassis-state-mgmt \
+        ${PN}-console \
         ${PN}-extras \
-        ${PN}-extrasdev \
-        ${PN}-extrasdevtools \
+        ${PN}-devtools \
         ${PN}-fan-control \
         ${PN}-host-state-mgmt \
         ${PN}-inventory \
         ${PN}-leds \
         ${PN}-logging \
         ${PN}-remote-logging \
+        ${PN}-rng \
         ${PN}-sensors \
         ${PN}-software \
         ${PN}-host-check-mgmt \
@@ -37,6 +38,11 @@ RDEPENDS_${PN}-chassis-state-mgmt = " \
         obmc-phosphor-power \
         "
 
+SUMMARY_${PN}-console = "Serial over LAN support"
+RDEPENDS_${PN}-console = " \
+        obmc-console \
+        "
+
 SUMMARY_${PN}-extras = "Extra features"
 RDEPENDS_${PN}-extras = " \
         bmcweb \
@@ -45,16 +51,16 @@ RDEPENDS_${PN}-extras = " \
         phosphor-nslcd-authority-cert-config \
         obmc-ikvm \
         phosphor-dbus-monitor \
-        phosphor-systemd-policy \
         "
 
-SUMMARY_${PN}-extrasdev = "Development features"
-RDEPENDS_${PN}-extrasdev = " \
-        "
-
-SUMMARY_${PN}-extrasdevtools = "Development tools"
-RDEPENDS_${PN}-extrasdevtools = " \
+SUMMARY_${PN}-devtools = "Development tools"
+RDEPENDS_${PN}-devtools = " \
+        bash \
+        ffdc \
+        i2c-tools \
         libgpiod-tools \
+        lrzsz \
+        rsync \
         "
 
 # Use the fan control package group for applications
@@ -95,6 +101,11 @@ SUMMARY_${PN}-remote-logging = "Remote logging applications"
 RDEPENDS_${PN}-remote-logging = " \
         rsyslog \
         phosphor-rsyslog-config \
+        "
+
+SUMMARY_${PN}-rng = "Random Number Generator support"
+RDEPENDS_${PN}-rng = " \
+        rng-tools \
         "
 
 SUMMARY_${PN}-sensors = "Sensor applications"
@@ -143,4 +154,7 @@ RDEPENDS_${PN}-user-mgmt = " \
         ${VIRTUAL-RUNTIME_obmc-user-mgmt} \
         ${@bb.utils.contains('DISTRO_FEATURES', 'ldap', 'nss-pam-ldapd', '', d)} \
         ${@bb.utils.contains('DISTRO_FEATURES', 'ldap', 'phosphor-ldap', '', d)} \
+        "
+RRECOMMENDS_${PN}-user-mgmt = " \
+        pam-plugin-access \
         "

@@ -5,6 +5,8 @@
 # - obmc-bmc-state-mgmt               - OpenBMC BMC state management
 # - obmc-chassis-mgmt                 - OpenBMC chassis management
 # - obmc-chassis-state-mgmt           - OpenBMC chassis state management
+# - obmc-console                      - OpenBMC serial over LAN
+# - obmc-devtools                     - OpenBMC development and debugging tools
 # - obmc-fan-control                  - OpenBMC fan management
 # - obmc-fan-mgmt                     - Deprecated - use obmc-fan-control instead
 # - obmc-flash-mgmt                   - OpenBMC flash management
@@ -15,6 +17,7 @@
 # - obmc-leds                         - OpenBMC LED support
 # - obmc-logging-mgmt                 - OpenBMC logging management
 # - obmc-remote-logging-mgmt          - OpenBMC remote logging management
+# - obmc-rng                          - OpenBMC random number generator
 # - obmc-sensors                      - OpenBMC sensor support
 # - obmc-settings-mgmt                - OpenBMC settings management
 # - obmc-software                     - OpenBMC software management
@@ -24,11 +27,11 @@
 
 inherit core-image
 
-LICENSE = "Apache-2.0"
-
 FEATURE_PACKAGES_obmc-bmc-state-mgmt ?= "packagegroup-obmc-apps-bmc-state-mgmt"
 FEATURE_PACKAGES_obmc-chassis-mgmt ?= "${@bb.utils.contains('COMBINED_FEATURES', 'obmc-phosphor-chassis-mgmt', 'virtual-obmc-chassis-mgmt', '', d)}"
 FEATURE_PACKAGES_obmc-chassis-state-mgmt ?= "packagegroup-obmc-apps-chassis-state-mgmt"
+FEATURE_PACKAGES_obmc-console ?= "packagegroup-obmc-apps-console"
+FEATURE_PACKAGES_obmc-devtools ?= "packagegroup-obmc-apps-devtools"
 FEATURE_PACKAGES_obmc-fan-control ?= "packagegroup-obmc-apps-fan-control"
 FEATURE_PACKAGES_obmc-fan-mgmt ?= "${@bb.utils.contains('COMBINED_FEATURES', 'obmc-phosphor-fan-mgmt', 'virtual-obmc-fan-mgmt', '', d)}"
 FEATURE_PACKAGES_obmc-flash-mgmt ?= "${@bb.utils.contains('COMBINED_FEATURES', 'obmc-phosphor-flash-mgmt', 'virtual-obmc-flash-mgmt', '', d)}"
@@ -39,6 +42,7 @@ FEATURE_PACKAGES_obmc-inventory ?= "packagegroup-obmc-apps-inventory"
 FEATURE_PACKAGES_obmc-leds ?= "packagegroup-obmc-apps-leds"
 FEATURE_PACKAGES_obmc-logging-mgmt ?= "packagegroup-obmc-apps-logging"
 FEATURE_PACKAGES_obmc-remote-logging-mgmt ?= "packagegroup-obmc-apps-remote-logging"
+FEATURE_PACKAGES_obmc-rng ?= "packagegroup-obmc-apps-rng"
 FEATURE_PACKAGES_obmc-net-ipmi ?= "phosphor-ipmi-net"
 FEATURE_PACKAGES_obmc-sensors ?= "packagegroup-obmc-apps-sensors"
 FEATURE_PACKAGES_obmc-software ?= "packagegroup-obmc-apps-software"
@@ -53,66 +57,22 @@ FEATURE_PACKAGES_obmc-user-mgmt ?= "packagegroup-obmc-apps-user-mgmt"
 # tree under phosphor-ipmi-host
 FEATURE_PACKAGES_obmc-net-ipmi_qemuall = ""
 
-# Install entire Phosphor application stack by default
-IMAGE_FEATURES += " \
-        obmc-bmc-state-mgmt \
-        obmc-chassis-mgmt \
-        obmc-chassis-state-mgmt \
-        obmc-fan-control \
-        obmc-fan-mgmt \
-        obmc-flash-mgmt \
-        obmc-host-ctl \
-        obmc-host-ipmi \
-        obmc-host-state-mgmt \
-        obmc-inventory \
-        obmc-leds \
-        obmc-logging-mgmt \
-        obmc-remote-logging-mgmt \
-        obmc-net-ipmi \
-        obmc-sensors \
-        obmc-software \
-        obmc-system-mgmt \
-        obmc-user-mgmt \
-        ssh-server-dropbear \
-        obmc-debug-collector \
-        obmc-network-mgmt \
-        obmc-settings-mgmt \
-        "
-
-IMAGE_FEATURES_append_df-obmc-ubi-fs = " read-only-rootfs"
-IMAGE_FEATURES_append_df-phosphor-mmc = " read-only-rootfs"
-
-CORE_IMAGE_EXTRA_INSTALL_append = " bash \
+# Add new packages to be installed to a package group in
+# packagegroup-obmc-apps, not here.
+OBMC_IMAGE_BASE_INSTALL = " \
         packagegroup-obmc-apps-extras \
-        packagegroup-obmc-apps-extrasdevtools \
-        i2c-tools \
-        obmc-console \
-        pam-plugin-access \
-        pam-ipmi \
         ${OBMC_IMAGE_EXTRA_INSTALL} \
-        ffdc \
-        rsync \
-        rng-tools \
-        lrzsz \
         "
 
 OBMC_IMAGE_EXTRA_INSTALL ?= ""
 
-# The /etc/version file is misleading and not useful.  Remove it.
-# Users should instead rely on /etc/os-release.
+CORE_IMAGE_EXTRA_INSTALL += "${OBMC_IMAGE_BASE_INSTALL}"
+
 remove_etc_version() {
         rm ${IMAGE_ROOTFS}${sysconfdir}/version
 }
-ROOTFS_POSTPROCESS_COMMAND += "remove_etc_version ; "
 
-# Disable the pager to prevent systemd injecting control characters into the
-# output stream that are not interpreted by busybox tools.
 disable_systemd_pager() {
         echo "SYSTEMD_PAGER=" >> ${IMAGE_ROOTFS}${sysconfdir}/profile
         echo "export SYSTEMD_PAGER" >> ${IMAGE_ROOTFS}${sysconfdir}/profile
 }
-ROOTFS_POSTPROCESS_COMMAND += "disable_systemd_pager ; "
-
-# The shadow recipe provides the binaries(like useradd, usermod) needed by the
-# phosphor-user-manager.
-ROOTFS_RO_UNNEEDED_remove = "shadow"
