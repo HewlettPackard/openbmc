@@ -1,4 +1,4 @@
-KBRANCH ?= "dev-5.7"
+KBRANCH ?= "dev-5.7-gxp-openbmc"
 LINUX_VERSION ?= "5.7.10"
 
 SRCREV="3662c3a27d7a3ad0201e7a5e57fedf03c5bd18b3"
